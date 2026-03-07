@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { useAppServices } from '../context/AppContext';
 import {
+  ChatUserSearchState,
   ConversationsScreen,
   OpenConversationPayload,
 } from './chats/ConversationsScreen';
@@ -33,6 +34,10 @@ export function AppShell() {
     null,
   );
   const [showVerification, setShowVerification] = useState(false);
+  const [chatUserSearchState, setChatUserSearchState] = useState<ChatUserSearchState>({
+    text: '',
+    searched: false,
+  });
 
   const nestedTitle = openConversation !== null
     ? openConversation.title
@@ -63,6 +68,8 @@ export function AppShell() {
             onOpenConversation={payload => {
               setOpenConversation(payload);
             }}
+            onSearchStateChange={setChatUserSearchState}
+            searchState={chatUserSearchState}
           />
         );
       case 'profile':
