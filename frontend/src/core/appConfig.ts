@@ -1,6 +1,6 @@
 import { Platform } from 'react-native';
 
-const host = Platform.OS === 'android' ? '10.0.2.2' : 'localhost';
+const host = Platform.OS === 'android' ? '10.254.127.35' : 'localhost';
 
 export const AppConfig = {
   // Mirrors Flutter base URL and route query strategy.
