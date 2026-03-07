@@ -6,8 +6,10 @@ import {
   ChatUserSearchState,
   ConversationsScreen,
   OpenConversationPayload,
+  SearchedUserProfile,
 } from './chats/ConversationsScreen';
 import { ChatScreen } from './chats/ChatScreen';
+import { SearchedUserProfileScreen } from './chats/SearchedUserProfileScreen';
 import { ExploreScreen } from './explore/ExploreScreen';
 import { HomeScreen } from './home/HomeScreen';
 import { ProfileScreen } from './profile/ProfileScreen';
@@ -33,6 +35,9 @@ export function AppShell() {
   const [openConversation, setOpenConversation] = useState<OpenConversationPayload | null>(
     null,
   );
+  const [openSearchedUserProfile, setOpenSearchedUserProfile] = useState<SearchedUserProfile | null>(
+    null,
+  );
   const [showVerification, setShowVerification] = useState(false);
   const [chatUserSearchState, setChatUserSearchState] = useState<ChatUserSearchState>({
     text: '',
@@ -41,15 +46,21 @@ export function AppShell() {
 
   const nestedTitle = openConversation !== null
     ? openConversation.title
+    : openSearchedUserProfile !== null
+      ? openSearchedUserProfile.name
     : showVerification
       ? 'Verification'
       : 'Skill Swap';
 
-  const showBack = openConversation !== null || showVerification;
+  const showBack =
+    openConversation !== null || openSearchedUserProfile !== null || showVerification;
 
   const renderContent = () => {
     if (openConversation !== null) {
       return <ChatScreen conversationId={openConversation.conversationId} />;
+    }
+    if (openSearchedUserProfile !== null) {
+      return <SearchedUserProfileScreen user={openSearchedUserProfile} />;
     }
     if (showVerification) {
       return <VerificationScreen />;
@@ -67,6 +78,9 @@ export function AppShell() {
           <ConversationsScreen
             onOpenConversation={payload => {
               setOpenConversation(payload);
+            }}
+            onOpenSearchedUserProfile={profile => {
+              setOpenSearchedUserProfile(profile);
             }}
             onSearchStateChange={setChatUserSearchState}
             searchState={chatUserSearchState}
@@ -93,6 +107,10 @@ export function AppShell() {
             onPress={() => {
               if (openConversation !== null) {
                 setOpenConversation(null);
+                return;
+              }
+              if (openSearchedUserProfile !== null) {
+                setOpenSearchedUserProfile(null);
                 return;
               }
               setShowVerification(false);

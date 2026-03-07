@@ -1,16 +1,16 @@
 export const colors = {
-  // Custom "Sea Glass" palette: calm, modern, and non-flashy.
-  bg: '#edf3f1',
-  panel: '#f8fcfa',
-  panelMuted: '#deece6',
-  border: '#b8ccc3',
-  text: '#1a2f2b',
-  textMuted: '#4d6660',
-  primary: '#176f66',
-  primaryPressed: '#0f5952',
-  primarySoft: '#c7e4de',
-  danger: '#b24a56',
-  warning: '#8f6a2f',
+  // "Skyline Fresh": brighter and cleaner while keeping readability high.
+  bg: '#f3f7ff',
+  panel: '#ffffff',
+  panelMuted: '#e7f0ff',
+  border: '#bfd0ed',
+  text: '#13233a',
+  textMuted: '#506481',
+  primary: '#0f7bff',
+  primaryPressed: '#0a64d4',
+  primarySoft: '#dce9ff',
+  danger: '#d34a60',
+  warning: '#9f6f19',
 };
 
 export const radius = {

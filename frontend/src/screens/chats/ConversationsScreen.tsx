@@ -24,18 +24,39 @@ export interface ChatUserSearchState {
   searched: boolean;
 }
 
-const DUMMY_SEARCH_USER = {
+export interface SearchedUserProfile {
+  name: string;
+  workStatus: string;
+  oneLineInfo: string;
+  role: string;
+  location: string;
+  about: string;
+  primarySkill: string;
+  yearsExperience: string;
+  contact: string;
+}
+
+const DUMMY_SEARCH_USER: SearchedUserProfile = {
   name: 'Nivaan Rao',
   workStatus: 'Freelance Product Designer',
   oneLineInfo: 'Designing simple user-first mobile products.',
+  role: 'UI/UX Designer',
+  location: 'Bengaluru, India',
+  about:
+    'I help early-stage teams turn raw ideas into simple, usable mobile experiences.',
+  primarySkill: 'Mobile UI and design systems',
+  yearsExperience: '4 years',
+  contact: 'nivaan.rao@example.com',
 };
 
 export function ConversationsScreen({
   onOpenConversation,
+  onOpenSearchedUserProfile,
   searchState,
   onSearchStateChange,
 }: {
   onOpenConversation: (payload: OpenConversationPayload) => void;
+  onOpenSearchedUserProfile: (user: SearchedUserProfile) => void;
   searchState: ChatUserSearchState;
   onSearchStateChange: (nextState: ChatUserSearchState) => void;
 }) {
@@ -106,7 +127,15 @@ export function ConversationsScreen({
 
           {searchState.searched ? (
             foundUser !== null ? (
-              <View style={styles.searchResultCard}>
+              <Pressable
+                onPress={() => {
+                  onOpenSearchedUserProfile(foundUser);
+                }}
+                style={({ pressed }) => [
+                  styles.searchResultCard,
+                  pressed ? styles.pressed : null,
+                ]}
+              >
                 <View style={styles.searchResultTextWrap}>
                   <Text style={styles.searchResultName}>{foundUser.name}</Text>
                   <Text style={styles.searchResultWork}>{foundUser.workStatus}</Text>
@@ -117,7 +146,7 @@ export function ConversationsScreen({
                     {foundUser.name.charAt(0).toUpperCase()}
                   </Text>
                 </View>
-              </View>
+              </Pressable>
             ) : (
               <Text style={styles.searchStatusText}>{searchStatus}</Text>
             )
