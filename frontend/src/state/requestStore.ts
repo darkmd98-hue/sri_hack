@@ -51,8 +51,13 @@ export class RequestStore extends Store {
     }
   }
 
-  async respond(requestId: number, action: 'accept' | 'reject'): Promise<void> {
+  async respond(requestId: number, action: 'accept' | 'reject' | 'cancel'): Promise<void> {
     await this.api.respond(requestId, action);
+    await this.refresh();
+  }
+
+  async complete(requestId: number): Promise<void> {
+    await this.api.complete(requestId);
     await this.refresh();
   }
 }

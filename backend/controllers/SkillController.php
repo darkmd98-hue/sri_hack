@@ -3,6 +3,52 @@ declare(strict_types=1);
 
 final class SkillController
 {
+    public static function myTeach(PDO $pdo): void
+    {
+        $user = requireAuth($pdo);
+        $stmt = $pdo->prepare(
+            'SELECT
+                uts.id,
+                uts.skill_id,
+                s.name AS skill_name,
+                s.category,
+                uts.level,
+                uts.mode,
+                uts.description,
+                uts.hourly_commitment,
+                uts.is_active,
+                uts.updated_at
+             FROM user_teach_skills uts
+             INNER JOIN skills s ON s.id = uts.skill_id
+             WHERE uts.user_id = :user_id
+               AND uts.is_active = 1
+             ORDER BY s.name ASC'
+        );
+        $stmt->execute(['user_id' => $user['id']]);
+        jsonResponse(200, true, $stmt->fetchAll());
+    }
+
+    public static function myLearn(PDO $pdo): void
+    {
+        $user = requireAuth($pdo);
+        $stmt = $pdo->prepare(
+            'SELECT
+                uls.id,
+                uls.skill_id,
+                s.name AS skill_name,
+                s.category,
+                uls.level_needed,
+                uls.notes,
+                uls.updated_at
+             FROM user_learn_skills uls
+             INNER JOIN skills s ON s.id = uls.skill_id
+             WHERE uls.user_id = :user_id
+             ORDER BY s.name ASC'
+        );
+        $stmt->execute(['user_id' => $user['id']]);
+        jsonResponse(200, true, $stmt->fetchAll());
+    }
+
     public static function list(PDO $pdo): void
     {
         $stmt = $pdo->query('SELECT id, name, category FROM skills ORDER BY name ASC');
@@ -143,6 +189,28 @@ final class SkillController
         ]);
 
         jsonResponse(201, true, ['message' => 'Learn skill saved']);
+    }
+
+    public static function deleteLearn(PDO $pdo): void
+    {
+        $user = requireAuth($pdo);
+        $input = jsonInput();
+        requireFields($input, ['id']);
+
+        $stmt = $pdo->prepare(
+            'DELETE FROM user_learn_skills
+             WHERE id = :id
+               AND user_id = :user_id'
+        );
+        $stmt->execute([
+            'id' => (int) $input['id'],
+            'user_id' => $user['id'],
+        ]);
+
+        if ($stmt->rowCount() === 0) {
+            jsonResponse(404, false, null, 'Learn skill not found');
+        }
+        jsonResponse(200, true, ['message' => 'Learn skill removed']);
     }
 
     public static function searchTeach(PDO $pdo): void

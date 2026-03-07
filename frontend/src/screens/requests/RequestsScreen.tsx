@@ -1,55 +1,137 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
+  Modal,
   Pressable,
   RefreshControl,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from 'react-native';
 
 import { useAppServices } from '../../context/AppContext';
 import { SwapRequest } from '../../models/swapRequest';
 import { useStoreSelector } from '../../state/store';
+import { colors, radius, spacing } from '../../ui/theme';
 
 type Tab = 'inbox' | 'sent';
 
 function RequestCard({
   item,
   isInbox,
+  processingId,
   onAccept,
   onReject,
+  onCancel,
+  onComplete,
+  onOpenReview,
 }: {
   item: SwapRequest;
   isInbox: boolean;
+  processingId: number | null;
   onAccept: (id: number) => void;
   onReject: (id: number) => void;
+  onCancel: (id: number) => void;
+  onComplete: (id: number) => void;
+  onOpenReview: (item: SwapRequest) => void;
 }) {
   const pendingInbox = isInbox && item.status === 'pending';
+  const pendingSent = !isInbox && item.status === 'pending';
+  const accepted = item.status === 'accepted';
+  const completed = item.status === 'completed';
+  const busy = processingId === item.id;
 
   return (
     <View style={styles.card}>
-      <Text style={styles.name}>{item.otherUserName ?? 'Unknown'}</Text>
+      <View style={styles.rowTop}>
+        <Text style={styles.name}>{item.otherUserName ?? 'Unknown'}</Text>
+        <View style={styles.statusPill}>
+          <Text style={styles.statusPillText}>{item.status.toUpperCase()}</Text>
+        </View>
+      </View>
       <Text style={styles.subtitle}>
-        {item.status}
         {item.message !== undefined && item.message.length > 0
-          ? ` - ${item.message}`
-          : ''}
+          ? item.message
+          : 'No message added to this request.'}
       </Text>
+      {item.teachSkillName !== undefined || item.learnSkillName !== undefined ? (
+        <Text style={styles.meta}>
+          Teach: {item.teachSkillName ?? '-'} | Learn: {item.learnSkillName ?? '-'}
+        </Text>
+      ) : null}
+      {item.proposedTime !== undefined ? (
+        <Text style={styles.meta}>Proposed: {item.proposedTime}</Text>
+      ) : null}
       {pendingInbox ? (
         <View style={styles.actions}>
           <Pressable
+            disabled={busy}
             onPress={() => onAccept(item.id)}
-            style={({ pressed }) => [styles.acceptButton, pressed ? styles.pressed : null]}
+            style={({ pressed }) => [
+              styles.acceptButton,
+              busy ? styles.disabled : null,
+              pressed ? styles.pressed : null,
+            ]}
           >
-            <Text style={styles.acceptText}>Accept</Text>
+            <Text style={styles.acceptText}>{busy ? 'Working...' : 'Accept'}</Text>
           </Pressable>
           <Pressable
+            disabled={busy}
             onPress={() => onReject(item.id)}
-            style={({ pressed }) => [styles.rejectButton, pressed ? styles.pressed : null]}
+            style={({ pressed }) => [
+              styles.rejectButton,
+              busy ? styles.disabled : null,
+              pressed ? styles.pressed : null,
+            ]}
           >
             <Text style={styles.rejectText}>Reject</Text>
+          </Pressable>
+        </View>
+      ) : null}
+      {pendingSent ? (
+        <View style={styles.actions}>
+          <Pressable
+            disabled={busy}
+            onPress={() => onCancel(item.id)}
+            style={({ pressed }) => [
+              styles.secondaryButton,
+              busy ? styles.disabled : null,
+              pressed ? styles.pressed : null,
+            ]}
+          >
+            <Text style={styles.secondaryText}>{busy ? 'Working...' : 'Cancel Request'}</Text>
+          </Pressable>
+        </View>
+      ) : null}
+      {accepted ? (
+        <View style={styles.actions}>
+          <Pressable
+            disabled={busy}
+            onPress={() => onComplete(item.id)}
+            style={({ pressed }) => [
+              styles.acceptButton,
+              busy ? styles.disabled : null,
+              pressed ? styles.pressed : null,
+            ]}
+          >
+            <Text style={styles.acceptText}>{busy ? 'Working...' : 'Mark Complete'}</Text>
+          </Pressable>
+        </View>
+      ) : null}
+      {completed ? (
+        <View style={styles.actions}>
+          <Pressable
+            disabled={busy}
+            onPress={() => onOpenReview(item)}
+            style={({ pressed }) => [
+              styles.secondaryButton,
+              busy ? styles.disabled : null,
+              pressed ? styles.pressed : null,
+            ]}
+          >
+            <Text style={styles.secondaryText}>Add Review</Text>
           </Pressable>
         </View>
       ) : null}
@@ -58,12 +140,18 @@ function RequestCard({
 }
 
 export function RequestsScreen() {
-  const { requestStore } = useAppServices();
+  const { requestStore, reviewApi } = useAppServices();
   const loading = useStoreSelector(requestStore, store => store.isLoading);
   const error = useStoreSelector(requestStore, store => store.error);
   const inbox = useStoreSelector(requestStore, store => store.inbox);
   const sent = useStoreSelector(requestStore, store => store.sent);
   const [tab, setTab] = useState<Tab>('inbox');
+  const [processingId, setProcessingId] = useState<number | null>(null);
+  const [status, setStatus] = useState<string | null>(null);
+  const [reviewTarget, setReviewTarget] = useState<SwapRequest | null>(null);
+  const [rating, setRating] = useState('5');
+  const [comment, setComment] = useState('');
+  const [reviewSaving, setReviewSaving] = useState(false);
 
   useEffect(() => {
     requestStore.refresh().catch(() => {
@@ -71,10 +159,53 @@ export function RequestsScreen() {
     });
   }, [requestStore]);
 
-  const items = useMemo(() => (tab === 'inbox' ? inbox : sent), [inbox, sent, tab]);
+  const items = tab === 'inbox' ? inbox : sent;
+
+  const runAction = async (requestId: number, action: () => Promise<void>): Promise<void> => {
+    setProcessingId(requestId);
+    setStatus(null);
+    try {
+      await action();
+    } catch (actionError) {
+      setStatus(String(actionError));
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
+  const submitReview = async (): Promise<void> => {
+    if (reviewTarget === null) {
+      return;
+    }
+    const parsedRating = Number.parseInt(rating.trim(), 10);
+    if (!Number.isFinite(parsedRating) || parsedRating < 1 || parsedRating > 5) {
+      setStatus('Rating must be between 1 and 5.');
+      return;
+    }
+
+    setReviewSaving(true);
+    setStatus(null);
+    try {
+      await reviewApi.addReview({
+        swapRequestId: reviewTarget.id,
+        rating: parsedRating,
+        comment: comment.trim(),
+      });
+      setStatus('Review submitted.');
+      setReviewTarget(null);
+      setComment('');
+      setRating('5');
+    } catch (reviewError) {
+      setStatus(String(reviewError));
+    } finally {
+      setReviewSaving(false);
+    }
+  };
 
   return (
     <View style={styles.container}>
+      <Text style={styles.title}>Swap Requests</Text>
+      <Text style={styles.description}>Manage incoming and sent exchange requests.</Text>
       <View style={styles.tabBar}>
         <Pressable
           onPress={() => setTab('inbox')}
@@ -93,10 +224,11 @@ export function RequestsScreen() {
           </Text>
         </Pressable>
       </View>
+      {status !== null ? <Text style={styles.statusText}>{status}</Text> : null}
 
       {loading && items.length === 0 ? (
         <View style={styles.center}>
-          <ActivityIndicator size="large" color="#0a7a5a" />
+          <ActivityIndicator size="large" color={colors.primary} />
         </View>
       ) : (
         <FlatList
@@ -116,22 +248,46 @@ export function RequestsScreen() {
                 });
               }}
               refreshing={loading}
-              tintColor="#0a7a5a"
+              tintColor={colors.primary}
             />
           }
           renderItem={({ item }) => (
             <RequestCard
               isInbox={tab === 'inbox'}
               item={item}
+              processingId={processingId}
               onAccept={id => {
-                requestStore.respond(id, 'accept').catch(() => {
-                  // Store exposes respond errors through state.
+                runAction(id, async () => {
+                  await requestStore.respond(id, 'accept');
+                }).catch(() => {
+                  // Screen state handles action errors.
                 });
               }}
               onReject={id => {
-                requestStore.respond(id, 'reject').catch(() => {
-                  // Store exposes respond errors through state.
+                runAction(id, async () => {
+                  await requestStore.respond(id, 'reject');
+                }).catch(() => {
+                  // Screen state handles action errors.
                 });
+              }}
+              onCancel={id => {
+                runAction(id, async () => {
+                  await requestStore.respond(id, 'cancel');
+                }).catch(() => {
+                  // Screen state handles action errors.
+                });
+              }}
+              onComplete={id => {
+                runAction(id, async () => {
+                  await requestStore.complete(id);
+                }).catch(() => {
+                  // Screen state handles action errors.
+                });
+              }}
+              onOpenReview={target => {
+                setReviewTarget(target);
+                setComment('');
+                setRating('5');
               }}
             />
           )}
@@ -139,6 +295,74 @@ export function RequestsScreen() {
       )}
 
       {error !== null ? <Text style={styles.errorText}>{error}</Text> : null}
+
+      <Modal
+        animationType="fade"
+        onRequestClose={() => {
+          if (!reviewSaving) {
+            setReviewTarget(null);
+          }
+        }}
+        transparent
+        visible={reviewTarget !== null}
+      >
+        <View style={styles.modalBackdrop}>
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>Add Review</Text>
+            <Text style={styles.modalSubtitle}>
+              {reviewTarget !== null ? `For ${reviewTarget.otherUserName ?? 'swap partner'}` : ''}
+            </Text>
+            <TextInput
+              editable={!reviewSaving}
+              keyboardType="number-pad"
+              maxLength={1}
+              onChangeText={setRating}
+              placeholder="Rating (1-5)"
+              style={styles.input}
+              value={rating}
+            />
+            <TextInput
+              editable={!reviewSaving}
+              multiline
+              onChangeText={setComment}
+              placeholder="Comment (optional)"
+              style={[styles.input, styles.commentInput]}
+              textAlignVertical="top"
+              value={comment}
+            />
+            <View style={styles.modalActions}>
+              <Pressable
+                disabled={reviewSaving}
+                onPress={() => {
+                  submitReview().catch(() => {
+                    // Screen state handles review errors.
+                  });
+                }}
+                style={({ pressed }) => [
+                  styles.acceptButton,
+                  reviewSaving ? styles.disabled : null,
+                  pressed ? styles.pressed : null,
+                ]}
+              >
+                <Text style={styles.acceptText}>{reviewSaving ? 'Saving...' : 'Submit Review'}</Text>
+              </Pressable>
+              <Pressable
+                disabled={reviewSaving}
+                onPress={() => {
+                  setReviewTarget(null);
+                }}
+                style={({ pressed }) => [
+                  styles.secondaryButton,
+                  reviewSaving ? styles.disabled : null,
+                  pressed ? styles.pressed : null,
+                ]}
+              >
+                <Text style={styles.secondaryText}>Close</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -146,31 +370,51 @@ export function RequestsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    paddingTop: spacing.md,
+  },
+  title: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: colors.text,
+    paddingHorizontal: spacing.md,
+  },
+  description: {
+    color: colors.textMuted,
+    fontSize: 13,
+    marginTop: 2,
+    paddingHorizontal: spacing.md,
+  },
+  statusText: {
+    color: colors.primary,
+    fontSize: 13,
+    paddingHorizontal: spacing.md,
+    marginTop: spacing.xs,
   },
   tabBar: {
     flexDirection: 'row',
-    margin: 12,
-    borderRadius: 10,
+    marginHorizontal: spacing.md,
+    marginTop: spacing.sm,
+    borderRadius: radius.md,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: '#c4d2c8',
+    borderColor: colors.border,
   },
   tabButton: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     minHeight: 40,
-    backgroundColor: '#f2f7f3',
+    backgroundColor: colors.panel,
   },
   activeTab: {
-    backgroundColor: '#0a7a5a',
+    backgroundColor: colors.primarySoft,
   },
   tabText: {
-    color: '#34584b',
+    color: colors.textMuted,
     fontWeight: '600',
   },
   activeTabText: {
-    color: '#ffffff',
+    color: colors.primary,
   },
   center: {
     flex: 1,
@@ -178,41 +422,66 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   listContent: {
-    paddingHorizontal: 12,
-    paddingBottom: 16,
-    gap: 8,
+    paddingHorizontal: spacing.md,
+    paddingBottom: spacing.lg,
+    paddingTop: spacing.sm,
+    gap: spacing.xs,
   },
   card: {
-    backgroundColor: '#ffffff',
-    borderRadius: 10,
+    backgroundColor: colors.panel,
+    borderRadius: radius.lg,
     borderWidth: 1,
-    borderColor: '#d7e1da',
-    padding: 12,
+    borderColor: colors.border,
+    padding: spacing.md,
+  },
+  rowTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.xs,
   },
   name: {
-    color: '#18392e',
+    color: colors.text,
     fontSize: 15,
     fontWeight: '700',
+    flex: 1,
+  },
+  statusPill: {
+    backgroundColor: colors.primarySoft,
+    borderRadius: radius.pill,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  statusPillText: {
+    color: colors.primary,
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 0.4,
   },
   subtitle: {
-    marginTop: 4,
-    color: '#35574a',
+    marginTop: spacing.xs,
+    color: colors.textMuted,
     fontSize: 13,
+  },
+  meta: {
+    marginTop: spacing.xs,
+    color: colors.textMuted,
+    fontSize: 12,
   },
   actions: {
     flexDirection: 'row',
-    gap: 8,
-    marginTop: 10,
+    gap: spacing.xs,
+    marginTop: spacing.sm,
   },
   acceptButton: {
-    backgroundColor: '#2c8b3f',
-    borderRadius: 8,
+    backgroundColor: colors.primary,
+    borderRadius: radius.md,
     paddingHorizontal: 12,
     paddingVertical: 8,
   },
   rejectButton: {
-    backgroundColor: '#c94a4a',
-    borderRadius: 8,
+    backgroundColor: colors.danger,
+    borderRadius: radius.md,
     paddingHorizontal: 12,
     paddingVertical: 8,
   },
@@ -224,17 +493,76 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontWeight: '600',
   },
+  secondaryButton: {
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    backgroundColor: colors.panelMuted,
+  },
+  secondaryText: {
+    color: colors.text,
+    fontWeight: '600',
+  },
   pressed: {
-    opacity: 0.8,
+    opacity: 0.84,
+  },
+  disabled: {
+    opacity: 0.68,
   },
   emptyText: {
     textAlign: 'center',
     marginTop: 20,
-    color: '#40665a',
+    color: colors.textMuted,
   },
   errorText: {
-    color: '#b00020',
-    paddingHorizontal: 12,
+    color: colors.danger,
+    paddingHorizontal: spacing.md,
     paddingBottom: 8,
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.28)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: spacing.md,
+  },
+  modalCard: {
+    width: '100%',
+    maxWidth: 420,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.panel,
+    padding: spacing.md,
+    gap: spacing.xs,
+  },
+  modalTitle: {
+    color: colors.text,
+    fontSize: 18,
+    fontWeight: '700',
+  },
+  modalSubtitle: {
+    color: colors.textMuted,
+    fontSize: 13,
+    marginBottom: 4,
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.md,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    backgroundColor: '#fffefb',
+    color: colors.text,
+    fontSize: 14,
+  },
+  commentInput: {
+    minHeight: 90,
+  },
+  modalActions: {
+    marginTop: spacing.xs,
+    gap: spacing.xs,
   },
 });

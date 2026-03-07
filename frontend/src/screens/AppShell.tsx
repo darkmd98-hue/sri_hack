@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { useAppServices } from '../context/AppContext';
@@ -13,6 +13,7 @@ import { ProfileScreen } from './profile/ProfileScreen';
 import { RequestsScreen } from './requests/RequestsScreen';
 import { VerificationScreen } from './verification/VerificationScreen';
 import { useStoreSelector } from '../state/store';
+import { colors, radius, spacing } from '../ui/theme';
 
 type TabKey = 'home' | 'explore' | 'requests' | 'chats' | 'profile';
 
@@ -33,15 +34,11 @@ export function AppShell() {
   );
   const [showVerification, setShowVerification] = useState(false);
 
-  const nestedTitle = useMemo(() => {
-    if (openConversation !== null) {
-      return openConversation.title;
-    }
-    if (showVerification) {
-      return 'Verification';
-    }
-    return 'Skill Swap';
-  }, [openConversation, showVerification]);
+  const nestedTitle = openConversation !== null
+    ? openConversation.title
+    : showVerification
+      ? 'Verification'
+      : 'Skill Swap';
 
   const showBack = openConversation !== null || showVerification;
 
@@ -101,9 +98,14 @@ export function AppShell() {
           <View style={styles.headerButtonPlaceholder} />
         )}
 
-        <Text numberOfLines={1} style={styles.headerTitle}>
-          {nestedTitle}
-        </Text>
+        <View style={styles.headerTitleWrap}>
+          <Text numberOfLines={1} style={styles.headerTitle}>
+            {nestedTitle}
+          </Text>
+          <Text style={styles.headerSubtitle}>
+            {showBack ? 'Detail view' : 'Peer learning network'}
+          </Text>
+        </View>
 
         <Pressable
           disabled={authLoading}
@@ -132,6 +134,7 @@ export function AppShell() {
               onPress={() => setTab(item.key)}
               style={[styles.tabButton, tab === item.key ? styles.activeTabButton : null]}
             >
+              {tab === item.key ? <View style={styles.activeDot} /> : null}
               <Text style={[styles.tabText, tab === item.key ? styles.activeTabText : null]}>
                 {item.label}
               </Text>
@@ -146,38 +149,47 @@ export function AppShell() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f4f7f4',
+    backgroundColor: colors.bg,
   },
   header: {
-    minHeight: 56,
-    paddingHorizontal: 10,
+    minHeight: 70,
+    paddingHorizontal: spacing.sm,
+    paddingTop: spacing.xs,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     borderBottomWidth: 1,
-    borderBottomColor: '#d7e1da',
-    backgroundColor: '#ffffff',
+    borderBottomColor: colors.border,
+    backgroundColor: colors.panel,
+  },
+  headerTitleWrap: {
+    flex: 1,
+    alignItems: 'center',
+    paddingHorizontal: spacing.xs,
   },
   headerTitle: {
-    flex: 1,
-    textAlign: 'center',
-    fontSize: 17,
+    fontSize: 18,
     fontWeight: '700',
-    color: '#16372d',
-    paddingHorizontal: 8,
+    color: colors.text,
+  },
+  headerSubtitle: {
+    marginTop: 1,
+    fontSize: 12,
+    color: colors.textMuted,
   },
   headerButton: {
-    minWidth: 64,
+    minWidth: 72,
+    backgroundColor: colors.primarySoft,
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 8,
-    borderRadius: 8,
+    borderRadius: radius.md,
   },
   headerButtonPlaceholder: {
-    minWidth: 64,
+    minWidth: 72,
   },
   headerButtonText: {
-    color: '#0a7a5a',
+    color: colors.primary,
     fontWeight: '700',
     fontSize: 14,
   },
@@ -185,34 +197,46 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   tabBar: {
-    minHeight: 58,
+    minHeight: 62,
     borderTopWidth: 1,
-    borderTopColor: '#d7e1da',
+    borderTopColor: colors.border,
     flexDirection: 'row',
-    backgroundColor: '#ffffff',
+    backgroundColor: colors.panel,
+    paddingHorizontal: spacing.xs,
+    paddingVertical: spacing.xs,
   },
   tabButton: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 4,
+    borderRadius: radius.md,
+    paddingVertical: spacing.xs,
+    position: 'relative',
   },
   activeTabButton: {
-    backgroundColor: '#e7f3ed',
+    backgroundColor: colors.primarySoft,
+  },
+  activeDot: {
+    position: 'absolute',
+    top: 4,
+    width: 5,
+    height: 5,
+    borderRadius: radius.pill,
+    backgroundColor: colors.primary,
   },
   tabText: {
-    color: '#35574a',
+    color: colors.textMuted,
     fontSize: 13,
     fontWeight: '600',
   },
   activeTabText: {
-    color: '#0a7a5a',
+    color: colors.primary,
     fontWeight: '700',
   },
   disabled: {
     opacity: 0.65,
   },
   pressed: {
-    opacity: 0.85,
+    opacity: 0.82,
   },
 });

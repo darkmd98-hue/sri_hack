@@ -13,6 +13,7 @@ import {
 import { useAppServices } from '../../context/AppContext';
 import { ChatMessage } from '../../models/chatMessage';
 import { useStoreSelector } from '../../state/store';
+import { colors, radius, spacing } from '../../ui/theme';
 
 function MessageBubble({
   message,
@@ -109,13 +110,14 @@ export function ChatScreen({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: colors.bg,
   },
   listContent: {
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
   },
   messageRow: {
-    marginVertical: 4,
+    marginVertical: 3,
     flexDirection: 'row',
   },
   mineRow: {
@@ -126,49 +128,52 @@ const styles = StyleSheet.create({
   },
   bubble: {
     maxWidth: '82%',
-    borderRadius: 10,
+    borderRadius: radius.md,
     paddingHorizontal: 12,
     paddingVertical: 9,
+    borderWidth: 1,
   },
   mineBubble: {
-    backgroundColor: '#cdeee1',
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
   },
   otherBubble: {
-    backgroundColor: '#e5eaeb',
+    backgroundColor: colors.panel,
+    borderColor: colors.border,
   },
   messageText: {
     fontSize: 14,
   },
   mineText: {
-    color: '#14352b',
+    color: '#ffffff',
   },
   otherText: {
-    color: '#203a32',
+    color: colors.text,
   },
   composer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    padding: 10,
+    gap: spacing.xs,
+    padding: spacing.sm,
     borderTopWidth: 1,
-    borderTopColor: '#d6e1da',
-    backgroundColor: '#ffffff',
+    borderTopColor: colors.border,
+    backgroundColor: colors.panel,
   },
   input: {
     flex: 1,
     borderWidth: 1,
-    borderColor: '#c3d1c6',
-    borderRadius: 10,
+    borderColor: colors.border,
+    borderRadius: radius.md,
     paddingHorizontal: 12,
     paddingVertical: 10,
     fontSize: 14,
-    color: '#17382d',
-    backgroundColor: '#ffffff',
+    color: colors.text,
+    backgroundColor: '#fffefb',
   },
   sendButton: {
-    backgroundColor: '#0a7a5a',
+    backgroundColor: colors.primary,
     minHeight: 42,
-    borderRadius: 10,
+    borderRadius: radius.md,
     paddingHorizontal: 14,
     alignItems: 'center',
     justifyContent: 'center',
@@ -178,6 +183,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   pressed: {
-    opacity: 0.85,
+    opacity: 0.82,
   },
 });

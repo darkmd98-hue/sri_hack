@@ -9,8 +9,14 @@ import {
 import { launchImageLibrary } from 'react-native-image-picker';
 
 import { useAppServices } from '../../context/AppContext';
+import { colors, radius, spacing } from '../../ui/theme';
 
 const DOC_TYPES = ['college_id', 'email', 'other'] as const;
+const DOC_LABEL: Record<(typeof DOC_TYPES)[number], string> = {
+  college_id: 'College ID',
+  email: 'Campus Email',
+  other: 'Other',
+};
 
 export function VerificationScreen() {
   const { profileApi } = useAppServices();
@@ -57,29 +63,40 @@ export function VerificationScreen() {
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.label}>Document Type</Text>
-      <View style={styles.docTypeRow}>
-        {DOC_TYPES.map(type => (
-          <Pressable
-            key={type}
-            onPress={() => setDocType(type)}
-            style={[
-              styles.docTypeButton,
-              docType === type ? styles.activeDocType : null,
-            ]}
-          >
-            <Text style={docType === type ? styles.activeDocTypeText : styles.docTypeText}>
-              {type}
-            </Text>
-          </Pressable>
-        ))}
+      <View style={styles.heroCard}>
+        <Text style={styles.title}>Account Verification</Text>
+        <Text style={styles.subtitle}>
+          Upload a clear photo so your profile can be marked as trusted.
+        </Text>
       </View>
 
-      <Text style={styles.label}>Selected File</Text>
-      <View style={styles.filePreview}>
-        <Text style={styles.filePreviewText}>
-          {selectedFileName ?? 'No file selected yet'}
-        </Text>
+      <View style={styles.sectionCard}>
+        <Text style={styles.label}>Document Type</Text>
+        <View style={styles.docTypeRow}>
+          {DOC_TYPES.map(type => (
+            <Pressable
+              key={type}
+              onPress={() => setDocType(type)}
+              style={[
+                styles.docTypeButton,
+                docType === type ? styles.activeDocType : null,
+              ]}
+            >
+              <Text style={docType === type ? styles.activeDocTypeText : styles.docTypeText}>
+                {DOC_LABEL[type]}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+      </View>
+
+      <View style={styles.sectionCard}>
+        <Text style={styles.label}>Selected File</Text>
+        <View style={styles.filePreview}>
+          <Text style={styles.filePreviewText}>
+            {selectedFileName ?? 'No file selected yet'}
+          </Text>
+        </View>
       </View>
 
       <Pressable
@@ -96,9 +113,14 @@ export function VerificationScreen() {
         ]}
       >
         <Text style={styles.uploadText}>
-          {uploading ? 'Uploading...' : 'Pick from Gallery & Upload'}
+          {uploading ? 'Uploading...' : 'Pick from Gallery and Upload'}
         </Text>
       </Pressable>
+
+      <View style={styles.hintCard}>
+        <Text style={styles.hintTitle}>Quick Tips</Text>
+        <Text style={styles.hintText}>Use bright lighting and keep text readable.</Text>
+      </View>
 
       {status !== null ? <Text style={styles.statusText}>{status}</Text> : null}
     </ScrollView>
@@ -107,56 +129,85 @@ export function VerificationScreen() {
 
 const styles = StyleSheet.create({
   container: {
-    padding: 12,
-    gap: 10,
+    padding: spacing.md,
+    gap: spacing.sm,
+    backgroundColor: colors.bg,
+  },
+  heroCard: {
+    backgroundColor: colors.panel,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.lg,
+    padding: spacing.md,
+  },
+  title: {
+    color: colors.text,
+    fontSize: 18,
+    fontWeight: '700',
+  },
+  subtitle: {
+    marginTop: 4,
+    color: colors.textMuted,
+    fontSize: 13,
+    lineHeight: 19,
+  },
+  sectionCard: {
+    backgroundColor: colors.panel,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.lg,
+    padding: spacing.md,
+    gap: spacing.xs,
   },
   label: {
-    color: '#1a3b30',
+    color: colors.text,
     fontWeight: '700',
     fontSize: 14,
   },
   docTypeRow: {
     flexDirection: 'row',
-    gap: 8,
+    gap: spacing.xs,
     flexWrap: 'wrap',
   },
   docTypeButton: {
     borderWidth: 1,
-    borderColor: '#9eb8a9',
-    borderRadius: 999,
+    borderColor: colors.border,
+    borderRadius: radius.pill,
     paddingHorizontal: 10,
     paddingVertical: 6,
-    backgroundColor: '#ffffff',
+    backgroundColor: '#fffefb',
   },
   activeDocType: {
-    borderColor: '#0a7a5a',
-    backgroundColor: '#0a7a5a',
+    borderColor: colors.primary,
+    backgroundColor: colors.primary,
   },
   docTypeText: {
-    color: '#2f5548',
+    color: colors.textMuted,
     fontWeight: '600',
+    fontSize: 13,
   },
   activeDocTypeText: {
     color: '#ffffff',
     fontWeight: '700',
+    fontSize: 13,
   },
   filePreview: {
     borderWidth: 1,
-    borderColor: '#c3d1c6',
-    borderRadius: 10,
+    borderColor: colors.border,
+    borderRadius: radius.md,
     paddingHorizontal: 12,
     paddingVertical: 10,
-    backgroundColor: '#ffffff',
+    backgroundColor: '#fffefb',
     minHeight: 42,
   },
   filePreviewText: {
-    color: '#17382d',
+    color: colors.text,
     fontSize: 14,
   },
   uploadButton: {
     minHeight: 44,
-    borderRadius: 10,
-    backgroundColor: '#0a7a5a',
+    borderRadius: radius.md,
+    backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -165,8 +216,27 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     fontSize: 15,
   },
+  hintCard: {
+    backgroundColor: colors.panelMuted,
+    borderRadius: radius.md,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  hintTitle: {
+    color: colors.text,
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  hintText: {
+    color: colors.textMuted,
+    fontSize: 12,
+    marginTop: 2,
+  },
   statusText: {
-    color: '#1d6a50',
+    color: colors.primary,
+    fontSize: 13,
   },
   pressed: {
     opacity: 0.85,

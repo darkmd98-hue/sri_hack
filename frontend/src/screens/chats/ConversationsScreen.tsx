@@ -11,6 +11,7 @@ import {
 
 import { useAppServices } from '../../context/AppContext';
 import { useStoreSelector } from '../../state/store';
+import { colors, radius, spacing } from '../../ui/theme';
 
 export interface OpenConversationPayload {
   conversationId: number;
@@ -36,7 +37,7 @@ export function ConversationsScreen({
   if (loading && conversations.length === 0) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color="#0a7a5a" />
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
@@ -70,7 +71,7 @@ export function ConversationsScreen({
             });
           }}
           refreshing={loading}
-          tintColor="#0a7a5a"
+          tintColor={colors.primary}
         />
       }
       renderItem={({ item }) => (
@@ -84,6 +85,9 @@ export function ConversationsScreen({
           style={({ pressed }) => [styles.card, pressed ? styles.pressed : null]}
         >
           <View style={styles.row}>
+            <View style={styles.avatar}>
+              <Text style={styles.avatarText}>{item.otherUserName.charAt(0).toUpperCase()}</Text>
+            </View>
             <Text style={styles.name}>{item.otherUserName}</Text>
             {item.unreadCount > 0 ? (
               <View style={styles.badge}>
@@ -103,26 +107,26 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 16,
+    padding: spacing.lg,
   },
   errorText: {
-    color: '#b00020',
+    color: colors.danger,
     textAlign: 'center',
   },
   emptyText: {
-    color: '#40665a',
+    color: colors.textMuted,
     textAlign: 'center',
   },
   listContent: {
-    padding: 12,
-    gap: 8,
+    padding: spacing.md,
+    gap: spacing.xs,
   },
   card: {
-    backgroundColor: '#ffffff',
+    backgroundColor: colors.panel,
     borderWidth: 1,
-    borderColor: '#d8e3db',
-    borderRadius: 10,
-    padding: 12,
+    borderColor: colors.border,
+    borderRadius: radius.lg,
+    padding: spacing.md,
   },
   pressed: {
     opacity: 0.85,
@@ -131,25 +135,39 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    gap: 8,
+    gap: spacing.xs,
+  },
+  avatar: {
+    width: 34,
+    height: 34,
+    borderRadius: radius.pill,
+    backgroundColor: colors.primarySoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarText: {
+    color: colors.primary,
+    fontSize: 14,
+    fontWeight: '700',
   },
   name: {
-    color: '#17382d',
+    color: colors.text,
     fontSize: 15,
     fontWeight: '700',
     flex: 1,
   },
   subtitle: {
-    marginTop: 4,
-    color: '#34584b',
+    marginTop: spacing.xs,
+    color: colors.textMuted,
     fontSize: 13,
+    marginLeft: 42,
   },
   badge: {
     minWidth: 20,
     paddingHorizontal: 6,
     height: 20,
     borderRadius: 10,
-    backgroundColor: '#0a7a5a',
+    backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
   },

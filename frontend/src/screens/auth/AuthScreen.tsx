@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -13,6 +13,7 @@ import {
 
 import { useAppServices } from '../../context/AppContext';
 import { useStoreSelector } from '../../state/store';
+import { colors, radius, spacing } from '../../ui/theme';
 
 export function AuthScreen() {
   const { authStore } = useAppServices();
@@ -24,10 +25,7 @@ export function AuthScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
-  const title = useMemo(
-    () => (registerMode ? 'Create account' : 'Welcome back'),
-    [registerMode],
-  );
+  const title = registerMode ? 'Create account' : 'Welcome back';
 
   const submit = async (): Promise<void> => {
     const normalizedEmail = email.trim();
@@ -44,8 +42,17 @@ export function AuthScreen() {
       style={styles.container}
     >
       <ScrollView contentContainerStyle={styles.scrollContent}>
+        <View style={styles.brandRow}>
+          <Text style={styles.brandTitle}>Skill Swap</Text>
+          <Text style={styles.brandTag}>Learn. Teach. Connect.</Text>
+        </View>
         <View style={styles.card}>
           <Text style={styles.title}>{title}</Text>
+          <Text style={styles.subtitle}>
+            {registerMode
+              ? 'Create your account to start exchanging skills with peers.'
+              : 'Sign in to continue your active swaps and conversations.'}
+          </Text>
 
           {registerMode ? (
             <TextInput
@@ -120,67 +127,84 @@ export function AuthScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f4f7f4',
+    backgroundColor: colors.bg,
   },
   scrollContent: {
     flexGrow: 1,
     justifyContent: 'center',
-    padding: 20,
+    padding: spacing.lg,
+    gap: spacing.md,
+  },
+  brandRow: {
+    paddingHorizontal: spacing.xs,
+    gap: 2,
+  },
+  brandTitle: {
+    color: colors.text,
+    fontSize: 28,
+    fontWeight: '800',
+    letterSpacing: 0.2,
+  },
+  brandTag: {
+    color: colors.textMuted,
+    fontSize: 14,
   },
   card: {
-    backgroundColor: '#ffffff',
-    borderRadius: 14,
-    padding: 20,
-    gap: 12,
-    shadowColor: '#000000',
-    shadowOpacity: 0.08,
-    shadowOffset: { width: 0, height: 6 },
-    shadowRadius: 12,
-    elevation: 3,
+    backgroundColor: colors.panel,
+    borderRadius: radius.lg,
+    padding: spacing.lg,
+    gap: spacing.sm,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   title: {
-    fontSize: 28,
+    fontSize: 30,
     fontWeight: '700',
-    color: '#13342a',
-    marginBottom: 4,
+    color: colors.text,
+  },
+  subtitle: {
+    color: colors.textMuted,
+    fontSize: 14,
+    marginBottom: spacing.xs,
   },
   input: {
     borderWidth: 1,
-    borderColor: '#c4d2c8',
-    borderRadius: 10,
+    borderColor: colors.border,
+    borderRadius: radius.md,
     paddingHorizontal: 12,
-    paddingVertical: 10,
+    paddingVertical: 11,
     fontSize: 16,
-    color: '#11251f',
-    backgroundColor: '#ffffff',
+    color: colors.text,
+    backgroundColor: '#fffefb',
   },
   errorText: {
-    color: '#b00020',
+    color: colors.danger,
     fontSize: 14,
   },
   submitButton: {
-    backgroundColor: '#0a7a5a',
-    borderRadius: 10,
-    minHeight: 46,
+    backgroundColor: colors.primary,
+    borderRadius: radius.md,
+    minHeight: 48,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 4,
+    marginTop: spacing.xs,
   },
   submitButtonDisabled: {
     opacity: 0.7,
   },
   submitButtonPressed: {
-    opacity: 0.85,
+    backgroundColor: colors.primaryPressed,
   },
   submitText: {
     color: '#ffffff',
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   toggleText: {
-    color: '#0a7a5a',
+    color: colors.primary,
     textAlign: 'center',
-    marginTop: 4,
+    marginTop: spacing.xs,
     fontSize: 15,
+    fontWeight: '600',
   },
 });

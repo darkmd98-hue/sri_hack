@@ -15,9 +15,9 @@ export class ChatStore extends Store {
   private readonly messagesByConversation = new Map<number, ChatMessage[]>();
   private _loading = false;
   private _error: string | null = null;
-  private pollTimer: ReturnType<typeof setInterval> | null = null;
+  private pollTimer: ReturnType<typeof setTimeout> | null = null;
   private activeConversationId: number | null = null;
-  private pollInFlight = false;
+  private pollVersion = 0;
 
   constructor(private readonly api: ChatApi) {
     super();
@@ -57,6 +57,7 @@ export class ChatStore extends Store {
     try {
       const messages = await this.api.messages(conversationId, 0);
       this.messagesByConversation.set(conversationId, messages);
+      await this.api.markRead(conversationId);
       this.notify();
     } catch (error) {
       this._error = errorMessage(error);
@@ -74,6 +75,7 @@ export class ChatStore extends Store {
       const message = await this.api.send(conversationId, normalized);
       const current = this.messagesFor(conversationId);
       this.messagesByConversation.set(conversationId, [...current, message]);
+      await this.api.markRead(conversationId);
       this.notify();
     } catch (error) {
       this._error = errorMessage(error);
@@ -81,38 +83,47 @@ export class ChatStore extends Store {
     }
   }
 
-  private async pollConversation(conversationId: number): Promise<void> {
-    if (this.pollInFlight) {
+  private async pollConversationLong(conversationId: number, version: number): Promise<void> {
+    if (this.activeConversationId !== conversationId || this.pollVersion !== version) {
       return;
     }
-
-    this.pollInFlight = true;
     try {
       const current = this.messagesFor(conversationId);
       const afterId = current.length === 0 ? 0 : current[current.length - 1].id;
-      const fresh = await this.api.messages(conversationId, afterId);
+      const fresh = await this.api.longPoll(conversationId, afterId, 20);
       if (fresh.length > 0) {
         this.messagesByConversation.set(conversationId, [...current, ...fresh]);
+        await this.api.markRead(conversationId);
         this.notify();
       }
     } catch {
       // Polling errors are ignored to keep chat responsive.
-    } finally {
-      this.pollInFlight = false;
     }
   }
 
   startPolling(conversationId: number): void {
     this.stopPolling();
     this.activeConversationId = conversationId;
-    this.pollTimer = setInterval(() => {
-      if (this.activeConversationId !== conversationId) {
+    this.pollVersion += 1;
+    const version = this.pollVersion;
+
+    const loop = () => {
+      if (this.activeConversationId !== conversationId || this.pollVersion !== version) {
         return;
       }
-      this.pollConversation(conversationId).catch(() => {
-        // Polling errors are intentionally swallowed.
-      });
-    }, 2000);
+      this.pollConversationLong(conversationId, version)
+        .catch(() => {
+          // Polling errors are intentionally swallowed.
+        })
+        .finally(() => {
+          if (this.activeConversationId !== conversationId || this.pollVersion !== version) {
+            return;
+          }
+          this.pollTimer = setTimeout(loop, 250);
+        });
+    };
+
+    loop();
   }
 
   stopPolling(conversationId?: number): void {
@@ -125,9 +136,10 @@ export class ChatStore extends Store {
     }
 
     if (this.pollTimer !== null) {
-      clearInterval(this.pollTimer);
+      clearTimeout(this.pollTimer);
       this.pollTimer = null;
     }
+    this.pollVersion += 1;
     this.activeConversationId = null;
   }
 

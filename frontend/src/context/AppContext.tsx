@@ -1,6 +1,7 @@
 import { createContext, PropsWithChildren, useContext, useEffect, useRef } from 'react';
 
 import { ApiClient } from '../api/apiClient';
+import { AvailabilityApi } from '../api/availabilityApi';
 import { AuthApi } from '../api/authApi';
 import { ChatApi } from '../api/chatApi';
 import { MatchApi } from '../api/matchApi';
@@ -19,6 +20,7 @@ export interface AppServices {
   tokenStorage: TokenStorage;
   apiClient: ApiClient;
   authApi: AuthApi;
+  availabilityApi: AvailabilityApi;
   matchApi: MatchApi;
   skillsApi: SkillsApi;
   swapApi: SwapApi;
@@ -39,6 +41,7 @@ function createServices(): AppServices {
   const apiClient = new ApiClient(tokenStorage);
 
   const authApi = new AuthApi(apiClient);
+  const availabilityApi = new AvailabilityApi(apiClient);
   const matchApi = new MatchApi(apiClient);
   const skillsApi = new SkillsApi(apiClient);
   const swapApi = new SwapApi(apiClient);
@@ -56,6 +59,7 @@ function createServices(): AppServices {
     tokenStorage,
     apiClient,
     authApi,
+    availabilityApi,
     matchApi,
     skillsApi,
     swapApi,

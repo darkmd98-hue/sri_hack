@@ -49,6 +49,12 @@ export class SkillsApi {
     });
   }
 
+  async deleteTeach(id: number): Promise<void> {
+    await this.client.post('/teach/delete', {
+      id,
+    });
+  }
+
   async addLearn(payload: {
     skillId: number;
     levelNeeded: string;
@@ -59,5 +65,21 @@ export class SkillsApi {
       level_needed: payload.levelNeeded,
       notes: payload.notes,
     });
+  }
+
+  async deleteLearn(id: number): Promise<void> {
+    await this.client.post('/learn/delete', {
+      id,
+    });
+  }
+
+  async myTeach(): Promise<SkillRow[]> {
+    const data = asArray(await this.client.get('/teach/mine'));
+    return data.map(item => asRecord(item));
+  }
+
+  async myLearn(): Promise<SkillRow[]> {
+    const data = asArray(await this.client.get('/learn/mine'));
+    return data.map(item => asRecord(item));
   }
 }

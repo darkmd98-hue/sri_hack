@@ -6,6 +6,7 @@ import { AppProvider, useAppServices } from './src/context/AppContext';
 import { AppShell } from './src/screens/AppShell';
 import { AuthScreen } from './src/screens/auth/AuthScreen';
 import { useStoreSelector } from './src/state/store';
+import { colors } from './src/ui/theme';
 
 function AppRoot() {
   const { authStore } = useAppServices();
@@ -21,8 +22,8 @@ function AppRoot() {
   if (!hasBootstrapped) {
     return (
       <View style={styles.loading}>
-        <ActivityIndicator color="#0a7a5a" size="large" />
-        <Text style={styles.loadingText}>Loading...</Text>
+        <ActivityIndicator color={colors.primary} size="large" />
+        <Text style={styles.loadingText}>Preparing Skill Swap...</Text>
       </View>
     );
   }
@@ -33,7 +34,7 @@ function AppRoot() {
 function App() {
   return (
     <SafeAreaProvider>
-      <StatusBar backgroundColor="#ffffff" barStyle="dark-content" />
+      <StatusBar backgroundColor={colors.bg} barStyle="dark-content" />
       <SafeAreaView edges={['top']} style={styles.safeArea}>
         <AppProvider>
           <AppRoot />
@@ -46,7 +47,7 @@ function App() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#f4f7f4',
+    backgroundColor: colors.bg,
   },
   loading: {
     flex: 1,
@@ -55,8 +56,8 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   loadingText: {
-    color: '#32564a',
-    fontSize: 14,
+    color: colors.textMuted,
+    fontSize: 15,
   },
 });
 

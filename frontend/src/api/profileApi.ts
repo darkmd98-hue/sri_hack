@@ -1,5 +1,5 @@
 import { MultipartFile } from './apiClient';
-import { asRecord } from '../models/parse';
+import { asArray, asRecord } from '../models/parse';
 import { ApiClient } from './apiClient';
 
 export class ProfileApi {
@@ -38,6 +38,29 @@ export class ProfileApi {
         'document',
         file,
       ),
+    );
+  }
+
+  async uploadAvatar(file: string | MultipartFile): Promise<Record<string, unknown>> {
+    return asRecord(
+      await this.client.postMultipart('/profile/upload-avatar', {}, 'avatar', file),
+    );
+  }
+
+  async listPendingVerificationDocs(): Promise<Record<string, unknown>[]> {
+    const data = asArray(await this.client.get('/verification/pending'));
+    return data.map(item => asRecord(item));
+  }
+
+  async reviewVerificationDoc(
+    docId: number,
+    action: 'approve' | 'reject',
+  ): Promise<Record<string, unknown>> {
+    return asRecord(
+      await this.client.post('/verification/review', {
+        doc_id: docId,
+        action,
+      }),
     );
   }
 }

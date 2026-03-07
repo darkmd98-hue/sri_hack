@@ -21,7 +21,10 @@ export class SwapApi {
     });
   }
 
-  async respond(swapRequestId: number, action: string): Promise<void> {
+  async respond(
+    swapRequestId: number,
+    action: 'accept' | 'reject' | 'cancel',
+  ): Promise<void> {
     await this.client.post('/swap/respond', {
       swap_request_id: swapRequestId,
       action,

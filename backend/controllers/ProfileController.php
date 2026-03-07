@@ -3,6 +3,33 @@ declare(strict_types=1);
 
 final class ProfileController
 {
+    public static function pendingVerificationDocs(PDO $pdo): void
+    {
+        $admin = requireAuth($pdo);
+        if ($admin['role'] !== 'admin') {
+            jsonResponse(403, false, null, 'Admin access required');
+        }
+
+        $stmt = $pdo->query(
+            'SELECT
+                vd.id,
+                vd.user_id,
+                vd.doc_type,
+                vd.doc_url,
+                vd.status,
+                vd.created_at,
+                u.name AS user_name,
+                u.email AS user_email
+             FROM verification_docs vd
+             INNER JOIN users u ON u.id = vd.user_id
+             WHERE vd.status = \'pending\'
+             ORDER BY vd.created_at ASC
+             LIMIT 200'
+        );
+
+        jsonResponse(200, true, $stmt->fetchAll());
+    }
+
     public static function update(PDO $pdo): void
     {
         $authUser = requireAuth($pdo);

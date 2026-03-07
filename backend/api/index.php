@@ -12,6 +12,7 @@ require_once __DIR__ . '/../services/ChatService.php';
 require_once __DIR__ . '/../controllers/AuthController.php';
 require_once __DIR__ . '/../controllers/ProfileController.php';
 require_once __DIR__ . '/../controllers/SkillController.php';
+require_once __DIR__ . '/../controllers/AvailabilityController.php';
 require_once __DIR__ . '/../controllers/MatchController.php';
 require_once __DIR__ . '/../controllers/SwapController.php';
 require_once __DIR__ . '/../controllers/ChatController.php';
@@ -56,6 +57,9 @@ $router->add('POST', '/verification/upload-doc', static function () use ($pdo): 
 $router->add('POST', '/verification/review', static function () use ($pdo): void {
     ProfileController::reviewVerificationDoc($pdo);
 });
+$router->add('GET', '/verification/pending', static function () use ($pdo): void {
+    ProfileController::pendingVerificationDocs($pdo);
+});
 $router->add('GET', '/user/{id}', static function (array $params) use ($pdo): void {
     ProfileController::getUser($pdo, (int) $params['id']);
 });
@@ -75,8 +79,27 @@ $router->add('POST', '/teach/delete', static function () use ($pdo): void {
 $router->add('POST', '/learn/add', static function () use ($pdo): void {
     SkillController::addLearn($pdo);
 });
+$router->add('POST', '/learn/delete', static function () use ($pdo): void {
+    SkillController::deleteLearn($pdo);
+});
+$router->add('GET', '/teach/mine', static function () use ($pdo): void {
+    SkillController::myTeach($pdo);
+});
+$router->add('GET', '/learn/mine', static function () use ($pdo): void {
+    SkillController::myLearn($pdo);
+});
 $router->add('GET', '/teach/search', static function () use ($pdo): void {
     SkillController::searchTeach($pdo);
+});
+
+$router->add('GET', '/availability/mine', static function () use ($pdo): void {
+    AvailabilityController::mine($pdo);
+});
+$router->add('POST', '/availability/upsert', static function () use ($pdo): void {
+    AvailabilityController::upsert($pdo);
+});
+$router->add('POST', '/availability/delete', static function () use ($pdo): void {
+    AvailabilityController::delete($pdo);
 });
 
 $router->add('GET', '/match/recommended', static function () use ($pdo): void {
