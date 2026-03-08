@@ -271,7 +271,7 @@ final class SkillController
             $params['mode'] = $mode;
         }
         if ($query !== '') {
-            $sql .= ' AND (s.name LIKE :q OR u.name LIKE :q)';
+            $sql .= ' AND s.name LIKE :q';
             $params['q'] = '%' . $query . '%';
         }
         $sql .= ' ORDER BY u.verification_status = \'verified\' DESC, avg_rating DESC, uts.updated_at DESC LIMIT 100';

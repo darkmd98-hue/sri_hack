@@ -117,10 +117,16 @@ export function ConversationsScreen({
                 value={searchState.text}
               />
               <Pressable
+                accessibilityLabel="Search users"
+                accessibilityRole="button"
                 onPress={runSearch}
                 style={({ pressed }) => [styles.searchButton, pressed ? styles.pressed : null]}
               >
-                <Text style={styles.searchButtonText}>Search</Text>
+                <View style={styles.searchButtonIcon}>
+                  <View style={styles.searchButtonIconRing} />
+                  <View style={styles.searchButtonIconHandle} />
+                  <View style={styles.searchButtonIconDot} />
+                </View>
               </Pressable>
             </View>
           </View>
@@ -258,17 +264,42 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   searchButton: {
-    minWidth: 86,
+    width: 42,
+    height: 42,
     borderRadius: radius.md,
     backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 12,
   },
-  searchButtonText: {
-    color: '#ffffff',
-    fontSize: 14,
-    fontWeight: '700',
+  searchButtonIcon: {
+    width: 16,
+    height: 16,
+  },
+  searchButtonIconRing: {
+    width: 11,
+    height: 11,
+    borderRadius: radius.pill,
+    borderWidth: 2,
+    borderColor: '#ffffff',
+  },
+  searchButtonIconHandle: {
+    position: 'absolute',
+    width: 7,
+    height: 2,
+    borderRadius: radius.pill,
+    backgroundColor: '#ffffff',
+    right: 0,
+    bottom: 0,
+    transform: [{ rotate: '45deg' }],
+  },
+  searchButtonIconDot: {
+    position: 'absolute',
+    width: 2,
+    height: 2,
+    borderRadius: radius.pill,
+    backgroundColor: '#ffffff',
+    left: 4,
+    top: 4,
   },
   searchResultCard: {
     backgroundColor: colors.panel,

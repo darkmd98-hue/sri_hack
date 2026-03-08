@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -11,7 +11,11 @@ import {
 } from 'react-native';
 
 import { useAppServices } from '../../context/AppContext';
+import { asInt } from '../../models/parse';
 import { colors, radius, spacing } from '../../ui/theme';
+
+const LEVEL_FILTERS = ['', 'beginner', 'intermediate', 'advanced'] as const;
+const MODE_FILTERS = ['', 'online', 'offline', 'both'] as const;
 
 function displayValue(value: unknown, fallback = '-'): string {
   if (value === null || value === undefined) {
@@ -35,6 +39,11 @@ function displayInt(value: unknown): number | null {
 export function ExploreScreen() {
   const { skillsApi, swapApi, safetyApi, chatApi } = useAppServices();
   const [query, setQuery] = useState('');
+  const [skills, setSkills] = useState<Record<string, unknown>[]>([]);
+  const [selectedSkillId, setSelectedSkillId] = useState<number | null>(null);
+  const [selectedLevel, setSelectedLevel] = useState<(typeof LEVEL_FILTERS)[number]>('');
+  const [selectedMode, setSelectedMode] = useState<(typeof MODE_FILTERS)[number]>('');
+  const [showFilters, setShowFilters] = useState(false);
   const [results, setResults] = useState<Record<string, unknown>[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -45,11 +54,22 @@ export function ExploreScreen() {
   const [actionLoading, setActionLoading] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
 
+  useEffect(() => {
+    skillsApi.listSkills().then(setSkills).catch(() => {
+      // Search works with query even if preloaded skill list fails.
+    });
+  }, [skillsApi]);
+
   const search = async (): Promise<void> => {
     setLoading(true);
     setError(null);
     try {
-      const rows = await skillsApi.searchTeach({ query: query.trim() });
+      const rows = await skillsApi.searchTeach({
+        query: query.trim(),
+        skillId: selectedSkillId === null ? undefined : selectedSkillId,
+        level: selectedLevel.length === 0 ? undefined : selectedLevel,
+        mode: selectedMode.length === 0 ? undefined : selectedMode,
+      });
       setResults(rows);
     } catch (searchError) {
       setError(String(searchError));
@@ -148,17 +168,77 @@ export function ExploreScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.searchCard}>
-        <Text style={styles.title}>Discover Teach Listings</Text>
+        <Text style={styles.title}>Discover by Skill</Text>
         <View style={styles.searchRow}>
+          <Pressable
+            accessibilityLabel="Toggle filters"
+            accessibilityRole="button"
+            onPress={() => setShowFilters(prev => !prev)}
+            style={({ pressed }) => [
+              styles.filterToggle,
+              showFilters ? styles.filterToggleActive : null,
+              pressed ? styles.pressed : null,
+            ]}
+          >
+            <View style={styles.filterIcon}>
+              <View style={styles.filterIconRow}>
+                <View
+                  style={[
+                    styles.filterIconLine,
+                    showFilters ? styles.filterIconLineActive : null,
+                  ]}
+                />
+                <View
+                  style={[
+                    styles.filterIconDot,
+                    styles.filterIconDotTop,
+                    showFilters ? styles.filterIconDotActive : null,
+                  ]}
+                />
+              </View>
+              <View style={styles.filterIconRow}>
+                <View
+                  style={[
+                    styles.filterIconLine,
+                    showFilters ? styles.filterIconLineActive : null,
+                  ]}
+                />
+                <View
+                  style={[
+                    styles.filterIconDot,
+                    styles.filterIconDotMiddle,
+                    showFilters ? styles.filterIconDotActive : null,
+                  ]}
+                />
+              </View>
+              <View style={styles.filterIconRow}>
+                <View
+                  style={[
+                    styles.filterIconLine,
+                    showFilters ? styles.filterIconLineActive : null,
+                  ]}
+                />
+                <View
+                  style={[
+                    styles.filterIconDot,
+                    styles.filterIconDotBottom,
+                    showFilters ? styles.filterIconDotActive : null,
+                  ]}
+                />
+              </View>
+            </View>
+          </Pressable>
           <TextInput
             autoCapitalize="none"
             editable={!loading}
             onChangeText={setQuery}
-            placeholder="Search skill or person"
+            placeholder="Search skill name"
             style={styles.input}
             value={query}
           />
           <Pressable
+            accessibilityLabel="Search skills"
+            accessibilityRole="button"
             disabled={loading}
             onPress={() => {
               search().catch(() => {
@@ -174,10 +254,99 @@ export function ExploreScreen() {
             {loading ? (
               <ActivityIndicator color="#ffffff" />
             ) : (
-              <Text style={styles.buttonText}>Search</Text>
+              <View style={styles.searchIcon}>
+                <View style={styles.searchIconRing} />
+                <View style={styles.searchIconHandle} />
+                <View style={styles.searchIconDot} />
+              </View>
             )}
           </Pressable>
         </View>
+        {showFilters ? (
+          <View style={styles.filtersPanel}>
+            <View style={styles.filterSection}>
+              <Text style={styles.filterLabel}>Skill Filter</Text>
+              <View style={styles.filterRow}>
+                {skills.slice(0, 10).map(skill => {
+                  const skillId = asInt(skill.id);
+                  const selected = selectedSkillId === skillId;
+                  return (
+                    <Pressable
+                      key={skillId}
+                      onPress={() => setSelectedSkillId(selected ? null : skillId)}
+                      style={[
+                        styles.filterChip,
+                        selected ? styles.filterChipActive : null,
+                      ]}
+                    >
+                      <Text style={selected ? styles.filterChipActiveText : styles.filterChipText}>
+                        {displayValue(skill.name, `Skill ${skillId}`)}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </View>
+            <View style={styles.filterSection}>
+              <Text style={styles.filterLabel}>Level</Text>
+              <View style={styles.filterRow}>
+                {LEVEL_FILTERS.map(level => {
+                  const selected = selectedLevel === level;
+                  return (
+                    <Pressable
+                      key={`level-${level || 'any'}`}
+                      onPress={() => setSelectedLevel(level)}
+                      style={[
+                        styles.filterChip,
+                        selected ? styles.filterChipActive : null,
+                      ]}
+                    >
+                      <Text style={selected ? styles.filterChipActiveText : styles.filterChipText}>
+                        {level.length === 0 ? 'Any' : level}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </View>
+            <View style={styles.filterSection}>
+              <Text style={styles.filterLabel}>Mode</Text>
+              <View style={styles.filterRow}>
+                {MODE_FILTERS.map(mode => {
+                  const selected = selectedMode === mode;
+                  return (
+                    <Pressable
+                      key={`mode-${mode || 'any'}`}
+                      onPress={() => setSelectedMode(mode)}
+                      style={[
+                        styles.filterChip,
+                        selected ? styles.filterChipActive : null,
+                      ]}
+                    >
+                      <Text style={selected ? styles.filterChipActiveText : styles.filterChipText}>
+                        {mode.length === 0 ? 'Any' : mode}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </View>
+            <Pressable
+              onPress={() => {
+                setSelectedSkillId(null);
+                setSelectedLevel('');
+                setSelectedMode('');
+                setQuery('');
+              }}
+              style={({ pressed }) => [
+                styles.clearButton,
+                pressed ? styles.pressed : null,
+              ]}
+            >
+              <Text style={styles.clearButtonText}>Clear Filters</Text>
+            </Pressable>
+          </View>
+        ) : null}
       </View>
 
       {error !== null ? <Text style={styles.errorText}>{error}</Text> : null}
@@ -188,7 +357,7 @@ export function ExploreScreen() {
         data={results}
         keyExtractor={(item, index) => String(item.id ?? `search-${index}`)}
         ListEmptyComponent={
-          loading ? null : <Text style={styles.emptyText}>No search results yet.</Text>
+          loading ? null : <Text style={styles.emptyText}>No skill matches found.</Text>
         }
         renderItem={({ item }) => (
           <View style={styles.resultCard}>
@@ -197,8 +366,8 @@ export function ExploreScreen() {
             </View>
             <Text style={styles.resultTitle}>{displayValue(item.user_name, 'User')}</Text>
             <Text style={styles.resultSubtitle}>
-              {displayValue(item.level)} | {displayValue(item.mode)} | Rating{' '}
-              {displayValue(item.avg_rating, '0')}
+              Level {displayValue(item.level)} | {displayValue(item.mode)} | Rating{' '}
+              {displayValue(item.avg_rating, '0')} | Dept {displayValue(item.dept, '-')}
             </Text>
             <View style={styles.resultActions}>
               <Pressable
@@ -353,7 +522,7 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     borderRadius: radius.lg,
     padding: spacing.md,
-    gap: spacing.sm,
+    gap: spacing.xs,
   },
   title: {
     color: colors.text,
@@ -362,7 +531,59 @@ const styles = StyleSheet.create({
   },
   searchRow: {
     flexDirection: 'row',
+    alignItems: 'center',
     gap: spacing.xs,
+  },
+  filterToggle: {
+    width: 42,
+    height: 42,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.panelMuted,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  filterToggleActive: {
+    borderColor: colors.primary,
+    backgroundColor: colors.primarySoft,
+  },
+  filterIcon: {
+    width: 17,
+    gap: 3,
+  },
+  filterIconRow: {
+    width: 17,
+    height: 4,
+    justifyContent: 'center',
+  },
+  filterIconLine: {
+    height: 2,
+    borderRadius: radius.pill,
+    backgroundColor: colors.textMuted,
+  },
+  filterIconLineActive: {
+    backgroundColor: colors.primary,
+  },
+  filterIconDot: {
+    position: 'absolute',
+    top: 0,
+    width: 4,
+    height: 4,
+    borderRadius: radius.pill,
+    backgroundColor: colors.text,
+  },
+  filterIconDotActive: {
+    backgroundColor: colors.primary,
+  },
+  filterIconDotTop: {
+    left: 1,
+  },
+  filterIconDotMiddle: {
+    left: 7,
+  },
+  filterIconDotBottom: {
+    left: 12,
   },
   input: {
     flex: 1,
@@ -378,10 +599,10 @@ const styles = StyleSheet.create({
   button: {
     backgroundColor: colors.primary,
     borderRadius: radius.md,
-    paddingHorizontal: 14,
+    width: 42,
+    height: 42,
     alignItems: 'center',
     justifyContent: 'center',
-    minWidth: 90,
   },
   buttonDisabled: {
     opacity: 0.7,
@@ -389,10 +610,90 @@ const styles = StyleSheet.create({
   buttonPressed: {
     backgroundColor: colors.primaryPressed,
   },
-  buttonText: {
-    color: '#ffffff',
+  searchIcon: {
+    width: 16,
+    height: 16,
+  },
+  searchIconRing: {
+    width: 11,
+    height: 11,
+    borderRadius: radius.pill,
+    borderWidth: 2,
+    borderColor: '#ffffff',
+  },
+  searchIconHandle: {
+    position: 'absolute',
+    width: 7,
+    height: 2,
+    borderRadius: radius.pill,
+    backgroundColor: '#ffffff',
+    right: 0,
+    bottom: 0,
+    transform: [{ rotate: '45deg' }],
+  },
+  searchIconDot: {
+    position: 'absolute',
+    width: 2,
+    height: 2,
+    borderRadius: radius.pill,
+    backgroundColor: '#ffffff',
+    left: 4,
+    top: 4,
+  },
+  filtersPanel: {
+    marginTop: spacing.xs,
+    gap: spacing.xs,
+  },
+  filterSection: {
+    marginTop: 2,
+    gap: spacing.xs,
+  },
+  filterLabel: {
+    color: colors.textMuted,
+    fontSize: 12,
     fontWeight: '700',
-    fontSize: 15,
+    letterSpacing: 0.3,
+  },
+  filterRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.xs,
+  },
+  filterChip: {
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.pill,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    backgroundColor: '#fffefb',
+  },
+  filterChipActive: {
+    borderColor: colors.primary,
+    backgroundColor: colors.primarySoft,
+  },
+  filterChipText: {
+    color: colors.textMuted,
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  filterChipActiveText: {
+    color: colors.primary,
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  clearButton: {
+    alignSelf: 'flex-start',
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.pill,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    backgroundColor: colors.panelMuted,
+  },
+  clearButtonText: {
+    color: colors.text,
+    fontSize: 12,
+    fontWeight: '700',
   },
   errorText: {
     color: colors.danger,
