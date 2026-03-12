@@ -74,6 +74,8 @@ function enforceRateLimit(PDO $pdo, string $action, int $limit, int $windowSecon
         jsonResponse(429, false, null, 'Too many requests. Please try again later.');
     }
 
+    // Attempts are recorded before the protected handler completes so failed logins, invalid payloads,
+    // and other early exits still consume the same budget and remain expensive to brute-force.
     $insertStmt = $pdo->prepare(
         'INSERT INTO rate_limit_events (action, ip_address, identifier_hash, created_at)
          VALUES (:action, :ip_address, :identifier_hash, NOW())'

@@ -207,6 +207,7 @@ final class ChatService
             if ($messages !== []) {
                 return $messages;
             }
+            // 2.5s keeps long-poll latency acceptable while avoiding the heavier DB churn from sub-second polling.
             usleep(2500000);
         }
 

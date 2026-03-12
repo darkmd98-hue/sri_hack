@@ -4,9 +4,18 @@ declare(strict_types=1);
 function applyCorsHeaders(): void
 {
     $origin = $_SERVER['HTTP_ORIGIN'] ?? '';
-    if ($origin !== '' && in_array($origin, corsAllowedOrigins(), true)) {
+    $allowedOrigins = corsAllowedOrigins();
+    if ($origin !== '' && in_array($origin, $allowedOrigins, true)) {
         header('Access-Control-Allow-Origin: ' . $origin);
         header('Vary: Origin');
+    } elseif ($origin !== '' && corsMismatchDebugLoggingEnabled()) {
+        error_log(
+            sprintf(
+                '[SkillSwap CORS] Blocked Origin "%s". Allowed origins: %s',
+                $origin,
+                $allowedOrigins === [] ? '<none configured>' : implode(', ', $allowedOrigins)
+            )
+        );
     }
     header('Access-Control-Allow-Headers: Content-Type, Authorization');
     header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
@@ -36,6 +45,18 @@ function corsAllowedOrigins(): array
     );
 
     return $allowedOrigins;
+}
+
+function corsMismatchDebugLoggingEnabled(): bool
+{
+    static $enabled = null;
+    if ($enabled !== null) {
+        return $enabled;
+    }
+
+    $env = require __DIR__ . '/../config/env.php';
+    $enabled = ($env['log_cors_mismatches'] ?? false) === true;
+    return $enabled;
 }
 
 function jsonInput(): array

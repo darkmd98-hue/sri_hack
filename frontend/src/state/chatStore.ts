@@ -119,6 +119,7 @@ export class ChatStore extends Store {
           if (this.activeConversationId !== conversationId || this.pollVersion !== version) {
             return;
           }
+          // 1.5s keeps the UI feeling responsive after a long-poll cycle without immediately slamming the server again.
           this.pollTimer = setTimeout(loop, 1500);
         });
     };

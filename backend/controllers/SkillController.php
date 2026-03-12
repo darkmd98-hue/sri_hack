@@ -271,6 +271,8 @@ final class SkillController
             $params['mode'] = $mode;
         }
         if ($query !== '') {
+            // q intentionally searches both skill names and user names; if this query grows large,
+            // consider FULLTEXT indexes on skills.name and users.name instead of wildcard LIKE scans.
             $sql .= ' AND (s.name LIKE :q_skill OR u.name LIKE :q_user)';
             $params['q_skill'] = '%' . $query . '%';
             $params['q_user'] = '%' . $query . '%';

@@ -15,6 +15,7 @@ final class AuthController
         $year = isset($input['year']) ? (int) $input['year'] : null;
         $bio = isset($input['bio']) ? trim((string) $input['bio']) : null;
 
+        // Count attempts on entry so invalid or abusive auth requests burn the same rate-limit budget.
         enforceRateLimit($pdo, 'auth:register', 5, 600, $email);
 
         if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
