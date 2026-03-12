@@ -38,6 +38,12 @@ $router->add('POST', '/auth/register', static function () use ($pdo): void {
 $router->add('POST', '/auth/login', static function () use ($pdo): void {
     AuthController::login($pdo);
 });
+$router->add('POST', '/auth/forgot', static function () use ($pdo): void {
+    AuthController::forgot($pdo);
+});
+$router->add('POST', '/auth/reset-password', static function () use ($pdo): void {
+    AuthController::resetPassword($pdo);
+});
 $router->add('POST', '/auth/logout', static function () use ($pdo): void {
     AuthController::logout($pdo);
 });

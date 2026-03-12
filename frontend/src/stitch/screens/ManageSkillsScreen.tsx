@@ -1,12 +1,23 @@
-import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useState } from 'react';
+import { Alert, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { stitchImages } from '../data';
 import { StitchIcon } from '../icons';
 import { stitchColors, stitchRadius, stitchShadow } from '../theme';
 import { StitchAppRoute } from '../types';
 
-const teachingSkills = [
+type SkillCard = {
+  id: number;
+  image: string;
+  level: string;
+  mode: string;
+  modeIcon: string;
+  title: string;
+};
+
+const teachingSkills: SkillCard[] = [
   {
+    id: 1,
     image: stitchImages.uiWireframe,
     level: 'Expert',
     mode: 'Online',
@@ -14,6 +25,7 @@ const teachingSkills = [
     title: 'UI/UX Design',
   },
   {
+    id: 2,
     image: stitchImages.neonCode,
     level: 'Intermediate',
     mode: 'Hybrid',
@@ -22,8 +34,9 @@ const teachingSkills = [
   },
 ];
 
-const learningSkills = [
+const learningSkills: SkillCard[] = [
   {
+    id: 101,
     image: stitchImages.cameraLens,
     level: 'Beginner',
     mode: 'In-person',
@@ -32,6 +45,53 @@ const learningSkills = [
   },
 ];
 
+const teachingLibrary: SkillCard[] = [
+  ...teachingSkills,
+  {
+    id: 3,
+    image: stitchImages.cameraLens,
+    level: 'Beginner',
+    mode: 'Online',
+    modeIcon: 'language',
+    title: 'Portrait Lighting',
+  },
+  {
+    id: 4,
+    image: stitchImages.uiWireframe,
+    level: 'Intermediate',
+    mode: 'Hybrid',
+    modeIcon: 'location_on',
+    title: 'Design Systems',
+  },
+];
+
+const learningLibrary: SkillCard[] = [
+  ...learningSkills,
+  {
+    id: 102,
+    image: stitchImages.neonCode,
+    level: 'Intermediate',
+    mode: 'Online',
+    modeIcon: 'language',
+    title: 'Node.js APIs',
+  },
+  {
+    id: 103,
+    image: stitchImages.uiWireframe,
+    level: 'Beginner',
+    mode: 'In-person',
+    modeIcon: 'person',
+    title: 'Motion Design',
+  },
+];
+
+const levelCycle = ['Beginner', 'Intermediate', 'Expert'] as const;
+const modeCycle = [
+  { mode: 'Online', modeIcon: 'language' },
+  { mode: 'Hybrid', modeIcon: 'location_on' },
+  { mode: 'In-person', modeIcon: 'person' },
+] as const;
+
 export function ManageSkillsScreen({
   onBack,
   onNavigate,
@@ -39,6 +99,76 @@ export function ManageSkillsScreen({
   onBack: () => void;
   onNavigate: (route: StitchAppRoute) => void;
 }) {
+  const [teachingRows, setTeachingRows] = useState<SkillCard[]>(teachingSkills);
+  const [learningRows, setLearningRows] = useState<SkillCard[]>(learningSkills);
+
+  const resetLists = (): void => {
+    Alert.alert('Reset skills', 'Restore the original skill lists?', [
+      {
+        style: 'cancel',
+        text: 'Cancel',
+      },
+      {
+        onPress: () => {
+          setTeachingRows(teachingSkills);
+          setLearningRows(learningSkills);
+        },
+        text: 'Reset',
+      },
+    ]);
+  };
+
+  const addSkill = (type: 'teaching' | 'learning'): void => {
+    const source = type === 'teaching' ? teachingLibrary : learningLibrary;
+    const activeRows = type === 'teaching' ? teachingRows : learningRows;
+    const nextRow = source.find(item => !activeRows.some(active => active.id === item.id));
+
+    if (nextRow === undefined) {
+      Alert.alert('All set', `All ${type === 'teaching' ? 'teaching' : 'learning'} skills are already added.`);
+      return;
+    }
+
+    if (type === 'teaching') {
+      setTeachingRows(previous => [...previous, nextRow]);
+      return;
+    }
+
+    setLearningRows(previous => [...previous, nextRow]);
+  };
+
+  const cycleSkill = (type: 'teaching' | 'learning', skillId: number): void => {
+    const updateRow = (row: SkillCard): SkillCard => {
+      if (row.id !== skillId) {
+        return row;
+      }
+      const nextLevel = levelCycle[(levelCycle.indexOf(row.level as (typeof levelCycle)[number]) + 1) % levelCycle.length];
+      const currentModeIndex = modeCycle.findIndex(option => option.mode === row.mode);
+      const nextMode = modeCycle[(currentModeIndex + 1) % modeCycle.length] ?? modeCycle[0];
+      return {
+        ...row,
+        level: nextLevel,
+        mode: nextMode.mode,
+        modeIcon: nextMode.modeIcon,
+      };
+    };
+
+    if (type === 'teaching') {
+      setTeachingRows(previous => previous.map(updateRow));
+      return;
+    }
+
+    setLearningRows(previous => previous.map(updateRow));
+  };
+
+  const deleteSkill = (type: 'teaching' | 'learning', skillId: number): void => {
+    if (type === 'teaching') {
+      setTeachingRows(previous => previous.filter(item => item.id !== skillId));
+      return;
+    }
+
+    setLearningRows(previous => previous.filter(item => item.id !== skillId));
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -46,18 +176,27 @@ export function ManageSkillsScreen({
           <StitchIcon color={stitchColors.primary} name="arrow_back" size={22} />
         </Pressable>
         <Text style={styles.headerTitle}>Manage Skills</Text>
-        <Pressable style={({ pressed }) => [styles.moreButton, pressed ? styles.pressed : null]}>
+        <Pressable
+          onPress={resetLists}
+          style={({ pressed }) => [styles.moreButton, pressed ? styles.pressed : null]}
+        >
           <StitchIcon color={stitchColors.text} name="more_vert" size={22} />
         </Pressable>
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         <View style={styles.quickActions}>
-          <Pressable style={({ pressed }) => [styles.primaryAction, pressed ? styles.pressed : null]}>
+          <Pressable
+            onPress={() => addSkill('teaching')}
+            style={({ pressed }) => [styles.primaryAction, pressed ? styles.pressed : null]}
+          >
             <StitchIcon color={stitchColors.white} name="add_circle" size={22} />
             <Text style={styles.primaryActionText}>Add Skill to Teach</Text>
           </Pressable>
-          <Pressable style={({ pressed }) => [styles.secondaryAction, pressed ? styles.pressed : null]}>
+          <Pressable
+            onPress={() => addSkill('learning')}
+            style={({ pressed }) => [styles.secondaryAction, pressed ? styles.pressed : null]}
+          >
             <StitchIcon color={stitchColors.primary} name="school" size={22} />
             <Text style={styles.secondaryActionText}>Add Skill to Learn</Text>
           </Pressable>
@@ -67,13 +206,13 @@ export function ManageSkillsScreen({
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Skills I&apos;m Teaching</Text>
             <View style={styles.countBadge}>
-              <Text style={styles.countBadgeText}>2 Active</Text>
+              <Text style={styles.countBadgeText}>{`${teachingRows.length} Active`}</Text>
             </View>
           </View>
 
           <View style={styles.cardsColumn}>
-            {teachingSkills.map(skill => (
-              <View key={skill.title} style={styles.skillCard}>
+            {teachingRows.map(skill => (
+              <View key={skill.id} style={styles.skillCard}>
                 <View style={styles.skillBody}>
                   <View style={styles.skillInfo}>
                     <Text style={styles.skillTitle}>{skill.title}</Text>
@@ -89,11 +228,17 @@ export function ManageSkillsScreen({
                   </View>
 
                   <View style={styles.skillButtons}>
-                    <Pressable style={({ pressed }) => [styles.smallButton, pressed ? styles.pressed : null]}>
+                    <Pressable
+                      onPress={() => cycleSkill('teaching', skill.id)}
+                      style={({ pressed }) => [styles.smallButton, pressed ? styles.pressed : null]}
+                    >
                       <StitchIcon color={stitchColors.slate700} name="edit" size={16} />
                       <Text style={styles.smallButtonText}>Edit</Text>
                     </Pressable>
-                    <Pressable style={({ pressed }) => [styles.deleteButton, pressed ? styles.pressed : null]}>
+                    <Pressable
+                      onPress={() => deleteSkill('teaching', skill.id)}
+                      style={({ pressed }) => [styles.deleteButton, pressed ? styles.pressed : null]}
+                    >
                       <StitchIcon color={stitchColors.danger} name="delete" size={16} />
                     </Pressable>
                   </View>
@@ -108,13 +253,13 @@ export function ManageSkillsScreen({
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Skills I&apos;m Learning</Text>
             <View style={styles.countBadge}>
-              <Text style={styles.countBadgeText}>1 Active</Text>
+              <Text style={styles.countBadgeText}>{`${learningRows.length} Active`}</Text>
             </View>
           </View>
 
           <View style={styles.cardsColumn}>
-            {learningSkills.map(skill => (
-              <View key={skill.title} style={styles.skillCard}>
+            {learningRows.map(skill => (
+              <View key={skill.id} style={styles.skillCard}>
                 <View style={styles.skillBody}>
                   <View style={styles.skillInfo}>
                     <Text style={styles.skillTitle}>{skill.title}</Text>
@@ -130,11 +275,17 @@ export function ManageSkillsScreen({
                   </View>
 
                   <View style={styles.skillButtons}>
-                    <Pressable style={({ pressed }) => [styles.smallButton, pressed ? styles.pressed : null]}>
+                    <Pressable
+                      onPress={() => cycleSkill('learning', skill.id)}
+                      style={({ pressed }) => [styles.smallButton, pressed ? styles.pressed : null]}
+                    >
                       <StitchIcon color={stitchColors.slate700} name="edit" size={16} />
                       <Text style={styles.smallButtonText}>Edit</Text>
                     </Pressable>
-                    <Pressable style={({ pressed }) => [styles.deleteButton, pressed ? styles.pressed : null]}>
+                    <Pressable
+                      onPress={() => deleteSkill('learning', skill.id)}
+                      style={({ pressed }) => [styles.deleteButton, pressed ? styles.pressed : null]}
+                    >
                       <StitchIcon color={stitchColors.danger} name="delete" size={16} />
                     </Pressable>
                   </View>
@@ -349,6 +500,7 @@ const styles = StyleSheet.create({
     width: 96,
     height: 96,
     borderRadius: 16,
+    resizeMode: 'cover',
   },
   bottomNav: {
     position: 'absolute',
@@ -361,7 +513,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 10,
     paddingBottom: 24,
-    backgroundColor: 'rgba(255,255,255,0.88)',
+    backgroundColor: stitchColors.white,
     borderTopWidth: 1,
     borderTopColor: stitchColors.slate200,
   },

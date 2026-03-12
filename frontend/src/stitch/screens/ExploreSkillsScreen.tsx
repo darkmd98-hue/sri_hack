@@ -1,3 +1,4 @@
+import { useMemo, useState } from 'react';
 import { Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { StitchNavItem } from '../components/common';
@@ -11,6 +12,7 @@ const cards = [
     dept: 'Computer Science \u2022 Senior',
     match: '98% MATCH',
     name: 'Alex Rivera',
+    reportedUserId: 1,
     rating: '4.9',
     reviews: '(42 reviews)',
     status: true,
@@ -22,6 +24,7 @@ const cards = [
     dept: 'Digital Arts \u2022 Sophomore',
     match: '92% MATCH',
     name: 'Sarah Chen',
+    reportedUserId: 2,
     rating: '5.0',
     reviews: '(18 reviews)',
     status: false,
@@ -33,6 +36,7 @@ const cards = [
     dept: 'Business Administration \u2022 Junior',
     match: '85% MATCH',
     name: 'James Wilson',
+    reportedUserId: 5,
     rating: '4.7',
     reviews: '(31 reviews)',
     status: false,
@@ -42,11 +46,50 @@ const cards = [
   },
 ];
 
+const filterOptions = ['Skill', 'Level', 'Mode', 'Location'] as const;
+type ExploreFilter = (typeof filterOptions)[number];
+
 export function ExploreSkillsScreen({
   onNavigate,
+  onOpenPublicProfile,
 }: {
   onNavigate: (route: StitchAppRoute) => void;
+  onOpenPublicProfile: (reportedUserId: number) => void;
 }) {
+  const [query, setQuery] = useState('');
+  const [activeFilter, setActiveFilter] = useState<ExploreFilter>('Skill');
+
+  const filteredCards = useMemo(() => {
+    const normalized = query.trim().toLowerCase();
+    if (normalized.length === 0) {
+      return cards;
+    }
+
+    return cards.filter(card => {
+      if (activeFilter === 'Skill') {
+        return `${card.teaches} ${card.wants}`.toLowerCase().includes(normalized);
+      }
+      if (activeFilter === 'Level') {
+        return card.dept.toLowerCase().includes(normalized);
+      }
+      if (activeFilter === 'Mode') {
+        return (card.status ? 'online' : 'offline').includes(normalized);
+      }
+      return `${card.name} ${card.dept} ${card.teaches} ${card.wants}`
+        .toLowerCase()
+        .includes(normalized);
+    });
+  }, [activeFilter, query]);
+
+  const searchPlaceholder =
+    activeFilter === 'Skill'
+      ? 'Search skills, departments, or names...'
+      : activeFilter === 'Level'
+        ? 'Search by year or level...'
+        : activeFilter === 'Mode'
+          ? 'Search online or offline...'
+          : 'Search current demo cards...';
+
   return (
     <View style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
@@ -56,7 +99,10 @@ export function ExploreSkillsScreen({
             <Text style={styles.brandTitle}>SkillSwap</Text>
           </View>
           <View style={styles.headerRight}>
-            <Pressable style={({ pressed }) => [styles.roundButton, pressed ? styles.pressed : null]}>
+            <Pressable
+              onPress={() => onNavigate('requests')}
+              style={({ pressed }) => [styles.roundButton, pressed ? styles.pressed : null]}
+            >
               <StitchIcon color={stitchColors.text} name="notifications" size={22} />
             </Pressable>
             <Pressable
@@ -74,10 +120,11 @@ export function ExploreSkillsScreen({
               <StitchIcon color={stitchColors.slate400} name="search" size={20} />
             </View>
             <TextInput
-              editable={false}
-              placeholder="Search skills, departments, or names..."
+              onChangeText={setQuery}
+              placeholder={searchPlaceholder}
               placeholderTextColor={stitchColors.slate400}
               style={styles.searchInput}
+              value={query}
             />
           </View>
 
@@ -86,22 +133,25 @@ export function ExploreSkillsScreen({
             horizontal
             showsHorizontalScrollIndicator={false}
           >
-            <Pressable style={styles.filterChipActive}>
-              <Text style={styles.filterChipActiveText}>Skill</Text>
-              <StitchIcon color={stitchColors.white} name="keyboard_arrow_down" size={16} />
-            </Pressable>
-            <View style={styles.filterChip}>
-              <Text style={styles.filterChipText}>Level</Text>
-              <StitchIcon color={stitchColors.text} name="keyboard_arrow_down" size={16} />
-            </View>
-            <View style={styles.filterChip}>
-              <Text style={styles.filterChipText}>Mode</Text>
-              <StitchIcon color={stitchColors.text} name="keyboard_arrow_down" size={16} />
-            </View>
-            <View style={styles.filterChip}>
-              <Text style={styles.filterChipText}>Location</Text>
-              <StitchIcon color={stitchColors.text} name="near_me" size={16} />
-            </View>
+            {filterOptions.map(option => {
+              const active = option === activeFilter;
+              return (
+                <Pressable
+                  key={option}
+                  onPress={() => setActiveFilter(option)}
+                  style={active ? styles.filterChipActive : styles.filterChip}
+                >
+                  <Text style={active ? styles.filterChipActiveText : styles.filterChipText}>
+                    {option}
+                  </Text>
+                  <StitchIcon
+                    color={active ? stitchColors.white : stitchColors.text}
+                    name={option === 'Location' ? 'near_me' : 'keyboard_arrow_down'}
+                    size={16}
+                  />
+                </Pressable>
+              );
+            })}
           </ScrollView>
 
           <View style={styles.sectionHeader}>
@@ -110,7 +160,7 @@ export function ExploreSkillsScreen({
           </View>
 
           <View style={styles.cards}>
-            {cards.map(card => (
+            {filteredCards.map(card => (
               <View key={card.name} style={styles.card}>
                 <View style={styles.cardTop}>
                   <View style={styles.portraitWrap}>
@@ -154,7 +204,7 @@ export function ExploreSkillsScreen({
                 </View>
 
                 <Pressable
-                  onPress={() => onNavigate('publicProfile')}
+                  onPress={() => onOpenPublicProfile(card.reportedUserId)}
                   style={({ pressed }) => [styles.connectButton, pressed ? styles.pressed : null]}
                 >
                   <Text style={styles.connectButtonText}>{`Connect with ${card.name.split(' ')[0]}`}</Text>
@@ -187,8 +237,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(55,19,236,0.10)',
-    backgroundColor: 'rgba(246,246,248,0.85)',
+    borderBottomColor: stitchColors.slate200,
+    backgroundColor: stitchColors.background,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -324,6 +374,7 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 16,
+    resizeMode: 'cover',
   },
   onlineDot: {
     position: 'absolute',
@@ -439,7 +490,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 10,
     paddingBottom: 20,
-    backgroundColor: 'rgba(255,255,255,0.96)',
+    backgroundColor: stitchColors.white,
     borderTopWidth: 1,
     borderTopColor: stitchColors.slate200,
   },

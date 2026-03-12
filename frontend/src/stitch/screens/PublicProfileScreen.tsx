@@ -1,5 +1,7 @@
-import { Image, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { useState } from 'react';
+import { Alert, Image, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 
+import { useAppServices } from '../../context/AppContext';
 import { stitchImages } from '../data';
 import { StitchIcon } from '../icons';
 import { stitchColors, stitchRadius, stitchShadow } from '../theme';
@@ -49,11 +51,55 @@ function RatingStars() {
 
 export function PublicProfileScreen({
   onNavigate,
+  onOpenReviews,
+  reportedUserId,
 }: {
   onNavigate: (route: StitchAppRoute) => void;
+  onOpenReviews: () => void;
+  reportedUserId: number | null;
 }) {
+  const { safetyApi } = useAppServices();
   const { width } = useWindowDimensions();
+  const [reporting, setReporting] = useState(false);
   const wide = width >= 920;
+
+  const submitReport = async (): Promise<void> => {
+    if (reportedUserId === null) {
+      Alert.alert('Report unavailable', 'This profile is missing a report target.');
+      return;
+    }
+
+    setReporting(true);
+    try {
+      await safetyApi.reportUser({
+        reportedId: reportedUserId,
+        reason: 'Inappropriate profile',
+      });
+      Alert.alert('Report submitted', 'Thanks. Our team will review this profile.');
+    } catch (error) {
+      Alert.alert('Report failed', String(error));
+    } finally {
+      setReporting(false);
+    }
+  };
+
+  const confirmReport = (): void => {
+    Alert.alert('Report Profile', 'Do you want to report this profile?', [
+      {
+        style: 'cancel',
+        text: 'Cancel',
+      },
+      {
+        onPress: () => {
+          submitReport().catch(() => {
+            // Alert handling already covers failures.
+          });
+        },
+        style: 'destructive',
+        text: 'Report',
+      },
+    ]);
+  };
 
   return (
     <View style={styles.container}>
@@ -66,10 +112,16 @@ export function PublicProfileScreen({
         </Pressable>
 
         <View style={styles.navActions}>
-          <Pressable style={({ pressed }) => [styles.navButton, pressed ? styles.pressed : null]}>
+          <Pressable
+            onPress={() => onNavigate('explore')}
+            style={({ pressed }) => [styles.navButton, pressed ? styles.pressed : null]}
+          >
             <StitchIcon color={stitchColors.slate600} name="search" size={22} />
           </Pressable>
-          <Pressable style={({ pressed }) => [styles.navButton, pressed ? styles.pressed : null]}>
+          <Pressable
+            onPress={() => onNavigate('requests')}
+            style={({ pressed }) => [styles.navButton, pressed ? styles.pressed : null]}
+          >
             <StitchIcon color={stitchColors.slate600} name="notifications_none" size={22} />
           </Pressable>
         </View>
@@ -162,7 +214,7 @@ export function PublicProfileScreen({
               <View style={styles.sectionCard}>
                 <View style={styles.sectionHeader}>
                   <Text style={styles.sectionTitle}>Recent Reviews</Text>
-                  <Pressable onPress={() => onNavigate('reviews')}>
+                  <Pressable onPress={onOpenReviews}>
                     <Text style={styles.linkText}>View All</Text>
                   </Pressable>
                 </View>
@@ -235,7 +287,15 @@ export function PublicProfileScreen({
               </View>
 
               <View style={styles.reportWrap}>
-                <Pressable style={({ pressed }) => [styles.reportButton, pressed ? styles.pressed : null]}>
+                <Pressable
+                  disabled={reporting}
+                  onPress={confirmReport}
+                  style={({ pressed }) => [
+                    styles.reportButton,
+                    reporting ? styles.disabled : null,
+                    pressed ? styles.pressed : null,
+                  ]}
+                >
                   <StitchIcon color={stitchColors.slate400} name="flag" size={14} />
                   <Text style={styles.reportText}>Report Profile</Text>
                 </Pressable>
@@ -267,7 +327,7 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     borderBottomWidth: 1,
     borderBottomColor: stitchColors.slate200,
-    backgroundColor: 'rgba(246,246,248,0.80)',
+    backgroundColor: stitchColors.background,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -337,6 +397,7 @@ const styles = StyleSheet.create({
     borderRadius: 72,
     borderWidth: 4,
     borderColor: 'rgba(55,19,236,0.10)',
+    resizeMode: 'cover',
   },
   heroStatusDot: {
     position: 'absolute',
@@ -554,6 +615,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
+    resizeMode: 'cover',
   },
   reviewName: {
     color: stitchColors.text,
@@ -591,6 +653,7 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     width: undefined,
     height: undefined,
+    resizeMode: 'cover',
   },
   mapBadge: {
     paddingHorizontal: 12,
@@ -679,7 +742,7 @@ const styles = StyleSheet.create({
     marginTop: 32,
     borderTopWidth: 1,
     borderTopColor: stitchColors.slate200,
-    backgroundColor: 'rgba(255,255,255,0.60)',
+    backgroundColor: stitchColors.white,
     paddingVertical: 24,
     paddingHorizontal: 24,
     alignItems: 'center',
@@ -700,5 +763,8 @@ const styles = StyleSheet.create({
   },
   pressed: {
     opacity: 0.85,
+  },
+  disabled: {
+    opacity: 0.6,
   },
 });

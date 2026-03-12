@@ -1,3 +1,4 @@
+import { useMemo, useState } from 'react';
 import { Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { StitchNavItem } from '../components/common';
@@ -6,17 +7,14 @@ import { StitchIcon } from '../icons';
 import { stitchColors, stitchRadius, stitchShadow } from '../theme';
 import { StitchAppRoute } from '../types';
 
-const filters = [
-  { active: true, label: 'All' },
-  { active: false, label: 'Unread' },
-  { active: false, label: 'Skill Requests' },
-  { active: false, label: 'Archived' },
-];
+const filters = ['All', 'Unread', 'Skill Requests', 'Archived'] as const;
+type MessageFilter = (typeof filters)[number];
 
 const conversations: Array<{
   active?: boolean;
   attachment?: boolean;
   avatar?: string;
+  filters?: MessageFilter[];
   highlighted?: boolean;
   initials?: string;
   name: string;
@@ -34,10 +32,12 @@ const conversations: Array<{
     preview: "Can you help me with React? I'm struggling with hooks...",
     route: 'chatWithSarah',
     time: '12:45 PM',
+    filters: ['All', 'Unread', 'Skill Requests'],
     unread: '2',
   },
   {
     avatar: stitchImages.chatsJordan,
+    filters: ['All', 'Skill Requests'],
     name: 'Jordan Smith',
     online: false,
     preview: "The UI design looks great! Let's schedule the swap.",
@@ -47,6 +47,7 @@ const conversations: Array<{
   {
     attachment: true,
     avatar: stitchImages.chatsSarah,
+    filters: ['All'],
     name: 'Sarah Chen',
     preview: 'Sent an attachment: Syllabus.pdf',
     route: 'chatWithSarah',
@@ -54,6 +55,7 @@ const conversations: Array<{
   },
   {
     avatar: stitchImages.chatsMarco,
+    filters: ['All', 'Unread'],
     highlighted: true,
     name: 'Marco Rossi',
     online: true,
@@ -64,12 +66,14 @@ const conversations: Array<{
   },
   {
     avatar: stitchImages.chatsElena,
+    filters: ['All', 'Skill Requests'],
     name: 'Elena Gilbert',
     preview: "I'm interested in learning French. Do you still teach?",
     route: 'chatFlow',
     time: 'Oct 22',
   },
   {
+    filters: ['All', 'Archived'],
     initials: 'DK',
     name: 'David Kim',
     preview: 'That sounds like a fair trade to me!',
@@ -83,6 +87,23 @@ export function MessagesScreen({
 }: {
   onNavigate: (route: StitchAppRoute) => void;
 }) {
+  const [query, setQuery] = useState('');
+  const [activeFilter, setActiveFilter] = useState<MessageFilter>('All');
+
+  const filteredConversations = useMemo(() => {
+    const normalized = query.trim().toLowerCase();
+    return conversations.filter(item => {
+      const matchesFilter = item.filters?.includes(activeFilter) ?? activeFilter === 'All';
+      if (!matchesFilter) {
+        return false;
+      }
+      if (normalized.length === 0) {
+        return true;
+      }
+      return `${item.name} ${item.preview}`.toLowerCase().includes(normalized);
+    });
+  }, [activeFilter, query]);
+
   return (
     <View style={styles.container}>
       <View style={styles.phoneFrame}>
@@ -101,9 +122,11 @@ export function MessagesScreen({
         <View style={styles.searchWrap}>
           <StitchIcon color={stitchColors.slate400} name="search" size={22} />
           <TextInput
+            onChangeText={setQuery}
             placeholder="Search conversations..."
             placeholderTextColor={stitchColors.slate500}
             style={styles.searchInput}
+            value={query}
           />
         </View>
 
@@ -113,24 +136,28 @@ export function MessagesScreen({
           showsHorizontalScrollIndicator={false}
         >
           {filters.map(filter => (
-            <View
-              key={filter.label}
-              style={[styles.filterChip, filter.active ? styles.filterChipActive : null]}
+            <Pressable
+              key={filter}
+              onPress={() => setActiveFilter(filter)}
+              style={[
+                styles.filterChip,
+                activeFilter === filter ? styles.filterChipActive : null,
+              ]}
             >
               <Text
                 style={[
                   styles.filterChipText,
-                  filter.active ? styles.filterChipTextActive : null,
+                  activeFilter === filter ? styles.filterChipTextActive : null,
                 ]}
               >
-                {filter.label}
+                {filter}
               </Text>
-            </View>
+            </Pressable>
           ))}
         </ScrollView>
 
         <ScrollView contentContainerStyle={styles.listContent} showsVerticalScrollIndicator={false}>
-          {conversations.map(item => (
+          {filteredConversations.map(item => (
             <Pressable
               key={item.name}
               onPress={() => onNavigate(item.route)}
@@ -253,7 +280,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: 'rgba(246,246,248,0.80)',
+    backgroundColor: stitchColors.background,
   },
   headerTitleRow: {
     flexDirection: 'row',
@@ -279,14 +306,14 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(226,232,240,0.50)',
+    backgroundColor: stitchColors.slate100,
   },
   searchWrap: {
     marginHorizontal: 16,
     marginTop: 4,
     height: 48,
     borderRadius: 12,
-    backgroundColor: 'rgba(226,232,240,0.50)',
+    backgroundColor: stitchColors.slate100,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
@@ -306,7 +333,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 6,
     borderRadius: stitchRadius.pill,
-    backgroundColor: 'rgba(226,232,240,0.50)',
+    backgroundColor: stitchColors.slate100,
   },
   filterChipActive: {
     backgroundColor: stitchColors.primary,
@@ -342,6 +369,7 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
+    resizeMode: 'cover',
   },
   avatarActive: {
     borderWidth: 2,
@@ -429,7 +457,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 10,
     paddingBottom: 20,
-    backgroundColor: 'rgba(246,246,248,0.95)',
+    backgroundColor: stitchColors.background,
     borderTopWidth: 1,
     borderTopColor: stitchColors.slate200,
   },

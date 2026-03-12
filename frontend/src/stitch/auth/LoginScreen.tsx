@@ -17,6 +17,7 @@ export function LoginScreen({
   email,
   error,
   loading,
+  onClose,
   password,
   rememberMe,
   showPassword,
@@ -31,6 +32,7 @@ export function LoginScreen({
   email: string;
   error: string | null;
   loading: boolean;
+  onClose: () => void;
   password: string;
   rememberMe: boolean;
   showPassword: boolean;
@@ -49,7 +51,10 @@ export function LoginScreen({
     >
       <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
         <View style={styles.header}>
-          <Pressable style={({ pressed }) => [styles.topCircle, pressed ? styles.pressed : null]}>
+          <Pressable
+            onPress={onClose}
+            style={({ pressed }) => [styles.topCircle, pressed ? styles.pressed : null]}
+          >
             <StitchIcon color={stitchColors.text} name="close" size={22} />
           </Pressable>
           <View style={styles.brandRow}>
@@ -378,6 +383,7 @@ const styles = StyleSheet.create({
   googleIcon: {
     width: 20,
     height: 20,
+    resizeMode: 'contain',
   },
   socialText: {
     color: stitchColors.slate700,

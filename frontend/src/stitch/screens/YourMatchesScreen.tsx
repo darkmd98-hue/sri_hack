@@ -12,6 +12,7 @@ const matchCards = [
     match: '95% Match',
     name: 'Alex Rivera, 28',
     offering: 'UI/UX Design',
+    reportedUserId: 1,
     seeking: 'Swift Dev',
     uri: stitchImages.publicProfile,
   },
@@ -20,6 +21,7 @@ const matchCards = [
     match: '88% Match',
     name: 'Sarah Chen, 31',
     offering: 'SEO & Ads',
+    reportedUserId: 2,
     seeking: 'Python Scripting',
     uri: stitchImages.exploreSarah,
   },
@@ -27,17 +29,25 @@ const matchCards = [
 
 export function YourMatchesScreen({
   onNavigate,
+  onOpenPublicProfile,
 }: {
   onNavigate: (route: StitchAppRoute) => void;
+  onOpenPublicProfile: (reportedUserId: number) => void;
 }) {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Pressable style={({ pressed }) => [styles.circleButton, pressed ? styles.pressed : null]}>
+        <Pressable
+          onPress={() => onNavigate('home')}
+          style={({ pressed }) => [styles.circleButton, pressed ? styles.pressed : null]}
+        >
           <StitchIcon color={stitchColors.primary} name="arrow_back" size={22} />
         </Pressable>
         <Text style={styles.headerTitle}>Match Recommendations</Text>
-        <Pressable style={({ pressed }) => [styles.circleButton, pressed ? styles.pressed : null]}>
+        <Pressable
+          onPress={() => onNavigate('explore')}
+          style={({ pressed }) => [styles.circleButton, pressed ? styles.pressed : null]}
+        >
           <StitchIcon color={stitchColors.primary} name="tune" size={22} />
         </Pressable>
       </View>
@@ -86,7 +96,7 @@ export function YourMatchesScreen({
 
               <View style={styles.actionRow}>
                 <Pressable
-                  onPress={() => onNavigate('publicProfile')}
+                  onPress={() => onOpenPublicProfile(card.reportedUserId)}
                   style={({ pressed }) => [styles.secondaryButton, pressed ? styles.pressed : null]}
                 >
                   <Text style={styles.secondaryButtonText}>View Profile</Text>
@@ -125,8 +135,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(55,19,236,0.10)',
-    backgroundColor: 'rgba(246,246,248,0.85)',
+    borderBottomColor: stitchColors.slate200,
+    backgroundColor: stitchColors.background,
   },
   circleButton: {
     width: 40,
@@ -148,7 +158,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     gap: 24,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(55,19,236,0.10)',
+    borderBottomColor: stitchColors.slate200,
   },
   activeTab: {
     paddingVertical: 16,
@@ -174,7 +184,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     backgroundColor: stitchColors.white,
     borderWidth: 1,
-    borderColor: 'rgba(55,19,236,0.08)',
+    borderColor: stitchColors.slate100,
     ...stitchShadow.card,
   },
   cardPrimary: {
@@ -328,9 +338,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingTop: 12,
     paddingBottom: 24,
-    backgroundColor: 'rgba(255,255,255,0.92)',
+    backgroundColor: stitchColors.white,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(55,19,236,0.10)',
+    borderTopColor: stitchColors.slate200,
   },
   pressed: {
     opacity: 0.85,

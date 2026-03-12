@@ -55,6 +55,12 @@ export function RegisterScreen({
   onYearChange: (value: string) => void;
 }) {
   const emailInvalid = email.length > 0 && !email.includes('.');
+  const canSubmit =
+    !loading &&
+    name.trim().length > 0 &&
+    password.trim().length > 0 &&
+    !emailInvalid &&
+    termsAccepted;
 
   return (
     <KeyboardAvoidingView
@@ -164,12 +170,12 @@ export function RegisterScreen({
           </Pressable>
 
           <Pressable
-            disabled={loading}
+            disabled={!canSubmit}
             onPress={onRegister}
             style={({ pressed }) => [
               styles.primaryButton,
+              !canSubmit ? styles.disabled : null,
               pressed ? styles.pressed : null,
-              loading ? styles.disabled : null,
             ]}
           >
             <Text style={styles.primaryButtonText}>

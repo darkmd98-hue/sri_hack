@@ -37,7 +37,7 @@ export function StitchIconButton({
         pressed ? styles.pressed : null,
       ]}
     >
-      <StitchIcon color={color} name={icon} size={Math.max(18, size * 0.52)} />
+      <StitchIcon color={color} name={icon} size={Math.round(Math.max(18, size * 0.52))} />
     </Pressable>
   );
 }
@@ -87,6 +87,7 @@ export function StitchAvatar({
 }) {
   return (
     <Image
+      resizeMode="cover"
       source={uri ? { uri } : undefined}
       style={[
         {

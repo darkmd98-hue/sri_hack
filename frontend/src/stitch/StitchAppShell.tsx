@@ -10,12 +10,15 @@ import { ChatsScreen } from './screens/ChatsScreen';
 import { MyProfileScreen } from './screens/MyProfileScreen';
 import { PublicProfileScreen } from './screens/PublicProfileScreen';
 import { ReviewsRatingsScreen } from './screens/ReviewsRatingsScreen';
+import { SavedScreen } from './screens/SavedScreen';
 import { SwapRequestsScreen } from './screens/SwapRequestsScreen';
 import { AccountVerificationScreen } from './screens/AccountVerificationScreen';
 import { StitchAppRoute } from './types';
 
 export function StitchAppShell() {
   const [history, setHistory] = useState<StitchAppRoute[]>(['home']);
+  const [selectedReportedUserId, setSelectedReportedUserId] = useState<number | null>(null);
+  const [selectedSwapRequestId, setSelectedSwapRequestId] = useState<number | null>(null);
 
   const route = history[history.length - 1] ?? 'home';
 
@@ -23,6 +26,16 @@ export function StitchAppShell() {
     setHistory(previous =>
       previous[previous.length - 1] === nextRoute ? previous : [...previous, nextRoute],
     );
+  };
+
+  const openPublicProfile = (reportedUserId: number): void => {
+    setSelectedReportedUserId(reportedUserId);
+    navigate('publicProfile');
+  };
+
+  const openReviews = (swapRequestId?: number): void => {
+    setSelectedSwapRequestId(swapRequestId ?? null);
+    navigate('reviews');
   };
 
   const goBack = (fallbackRoute: StitchAppRoute = 'home'): void => {
@@ -39,11 +52,11 @@ export function StitchAppShell() {
 
   switch (route) {
     case 'explore':
-      return <ExploreSkillsScreen onNavigate={navigate} />;
+      return <ExploreSkillsScreen onNavigate={navigate} onOpenPublicProfile={openPublicProfile} />;
     case 'matches':
-      return <YourMatchesScreen onNavigate={navigate} />;
+      return <YourMatchesScreen onNavigate={navigate} onOpenPublicProfile={openPublicProfile} />;
     case 'requests':
-      return <SwapRequestsScreen onNavigate={navigate} />;
+      return <SwapRequestsScreen onNavigate={navigate} onOpenReviews={openReviews} />;
     case 'chats':
       return <ChatsScreen onNavigate={navigate} />;
     case 'profile':
@@ -51,6 +64,14 @@ export function StitchAppShell() {
         <MyProfileScreen
           onBack={() => goBack('home')}
           onNavigate={navigate}
+          onOpenReviews={() => openReviews()}
+        />
+      );
+    case 'saved':
+      return (
+        <SavedScreen
+          onBack={() => goBack('profile')}
+          onOpenPublicProfile={openPublicProfile}
         />
       );
     case 'manageSkills':
@@ -63,15 +84,21 @@ export function StitchAppShell() {
     case 'verification':
       return <AccountVerificationScreen onBack={() => goBack('profile')} />;
     case 'reviews':
-      return <ReviewsRatingsScreen onBack={() => goBack('profile')} />;
+      return <ReviewsRatingsScreen onBack={() => goBack('profile')} swapRequestId={selectedSwapRequestId} />;
     case 'publicProfile':
-      return <PublicProfileScreen onNavigate={navigate} />;
+      return (
+        <PublicProfileScreen
+          onNavigate={navigate}
+          onOpenReviews={() => openReviews()}
+          reportedUserId={selectedReportedUserId}
+        />
+      );
     case 'chatFlow':
       return <ChatFlowScreen onBack={() => goBack('chats')} />;
     case 'chatWithSarah':
       return <ChatWithSarahScreen onBack={() => goBack('chats')} />;
     case 'home':
     default:
-      return <HomeDashboardScreen onNavigate={navigate} />;
+      return <HomeDashboardScreen onNavigate={navigate} onOpenPublicProfile={openPublicProfile} />;
   }
 }

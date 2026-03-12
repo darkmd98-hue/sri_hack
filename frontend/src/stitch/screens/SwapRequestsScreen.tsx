@@ -1,3 +1,4 @@
+import { useMemo, useState } from 'react';
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { stitchImages } from '../data';
@@ -5,20 +6,41 @@ import { StitchIcon } from '../icons';
 import { stitchColors, stitchRadius, stitchShadow } from '../theme';
 import { StitchAppRoute } from '../types';
 
-const tabs = [
-  { active: true, badge: '3', label: 'Incoming' },
-  { active: false, label: 'Sent' },
-  { active: false, label: 'Accepted' },
-  { active: false, label: 'Completed' },
+type RequestTab = 'incoming' | 'sent' | 'accepted' | 'completed';
+
+type RequestCardData = {
+  actionTime: string;
+  avatar: string;
+  defaultBadge: string;
+  defaultBadgeColor: string;
+  defaultBadgeTextColor: string;
+  id: number;
+  message: string;
+  name: string;
+  online: boolean;
+  primarySkill: string;
+  primarySkillIcon: string;
+  secondarySkill: string;
+  secondarySkillIcon: string;
+  status: RequestTab;
+  terminalBadge?: string;
+};
+
+const tabLabels: Array<{ key: RequestTab; label: string }> = [
+  { key: 'incoming', label: 'Incoming' },
+  { key: 'sent', label: 'Sent' },
+  { key: 'accepted', label: 'Accepted' },
+  { key: 'completed', label: 'Completed' },
 ];
 
-const requests = [
+const initialRequests: RequestCardData[] = [
   {
     actionTime: '2 hours ago',
     avatar: stitchImages.requestSarah,
-    badge: 'New Request',
-    badgeColor: 'rgba(55,19,236,0.10)',
-    badgeTextColor: stitchColors.primary,
+    defaultBadge: 'New Request',
+    defaultBadgeColor: 'rgba(55,19,236,0.10)',
+    defaultBadgeTextColor: stitchColors.primary,
+    id: 1,
     message:
       `"Hey! I saw you're looking for UI design help. I'd love to swap that for some Python backend basics for my new project."`,
     name: 'Sarah Chen',
@@ -27,13 +49,15 @@ const requests = [
     primarySkillIcon: 'psychology',
     secondarySkill: 'Python Dev',
     secondarySkillIcon: 'code',
+    status: 'incoming',
   },
   {
     actionTime: 'Yesterday, 4:15 PM',
     avatar: stitchImages.requestMarcus,
-    badge: 'Pending',
-    badgeColor: stitchColors.slate100,
-    badgeTextColor: stitchColors.slate500,
+    defaultBadge: 'Pending',
+    defaultBadgeColor: stitchColors.slate100,
+    defaultBadgeTextColor: stitchColors.slate500,
+    id: 2,
     message:
       `"I can teach you how to make authentic handmade pasta if you can help me with my restaurant photography! Check my portfolio."`,
     name: 'Marcus Thorne',
@@ -42,13 +66,15 @@ const requests = [
     primarySkillIcon: 'restaurant',
     secondarySkill: 'Photography',
     secondarySkillIcon: 'camera_alt',
+    status: 'incoming',
   },
   {
     actionTime: 'Oct 22, 11:30 AM',
     avatar: stitchImages.requestElena,
-    badge: 'Pending',
-    badgeColor: stitchColors.slate100,
-    badgeTextColor: stitchColors.slate500,
+    defaultBadge: 'Pending',
+    defaultBadgeColor: stitchColors.slate100,
+    defaultBadgeTextColor: stitchColors.slate500,
+    id: 3,
     message:
       `"Looking to brush up on my Spanish for an upcoming trip. I can offer a deep dive into SEO for your blog in return."`,
     name: 'Elena Rodriguez',
@@ -57,14 +83,97 @@ const requests = [
     primarySkillIcon: 'trending_up',
     secondarySkill: 'Spanish Tutor',
     secondarySkillIcon: 'translate',
+    status: 'incoming',
   },
 ];
 
+function badgeForRequest(request: RequestCardData): {
+  backgroundColor: string;
+  text: string;
+  textColor: string;
+} {
+  switch (request.status) {
+    case 'accepted':
+      return {
+        backgroundColor: 'rgba(34,197,94,0.12)',
+        text: 'Accepted',
+        textColor: '#15803d',
+      };
+    case 'sent':
+      return {
+        backgroundColor: 'rgba(14,165,233,0.12)',
+        text: 'Sent',
+        textColor: '#0369a1',
+      };
+    case 'completed':
+      return {
+        backgroundColor: stitchColors.slate100,
+        text: request.terminalBadge ?? 'Completed',
+        textColor: stitchColors.slate500,
+      };
+    case 'incoming':
+    default:
+      return {
+        backgroundColor: request.defaultBadgeColor,
+        text: request.defaultBadge,
+        textColor: request.defaultBadgeTextColor,
+      };
+  }
+}
+
 export function SwapRequestsScreen({
   onNavigate,
+  onOpenReviews,
 }: {
   onNavigate: (route: StitchAppRoute) => void;
+  onOpenReviews: (swapRequestId: number) => void;
 }) {
+  const [activeTab, setActiveTab] = useState<RequestTab>('incoming');
+  const [requestRows, setRequestRows] = useState<RequestCardData[]>(initialRequests);
+
+  const counts = useMemo(
+    () =>
+      requestRows.reduce<Record<RequestTab, number>>(
+        (accumulator, request) => ({
+          ...accumulator,
+          [request.status]: accumulator[request.status] + 1,
+        }),
+        {
+          accepted: 0,
+          completed: 0,
+          incoming: 0,
+          sent: 0,
+        },
+      ),
+    [requestRows],
+  );
+
+  const visibleRequests = useMemo(
+    () => requestRows.filter(request => request.status === activeTab),
+    [activeTab, requestRows],
+  );
+
+  const updateRequest = (requestId: number, nextStatus: RequestTab, terminalBadge?: string): void => {
+    setRequestRows(previous =>
+      previous.map(request =>
+        request.id === requestId
+          ? {
+              ...request,
+              status: nextStatus,
+              terminalBadge,
+            }
+          : request,
+      ),
+    );
+  };
+
+  const emptyStateCopy: Record<RequestTab, string> = {
+    accepted: 'No accepted swaps yet.',
+    completed: 'No past requests yet.',
+    incoming: 'No incoming swap requests right now.',
+    sent: 'No sent requests yet.',
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -75,7 +184,10 @@ export function SwapRequestsScreen({
           <Text style={styles.brandTitle}>SkillSwap</Text>
         </View>
         <View style={styles.headerActions}>
-          <Pressable style={({ pressed }) => [styles.circleButton, pressed ? styles.pressed : null]}>
+          <Pressable
+            onPress={() => setActiveTab('incoming')}
+            style={({ pressed }) => [styles.circleButton, pressed ? styles.pressed : null]}
+          >
             <StitchIcon color={stitchColors.slate600} name="notifications" size={22} />
             <View style={styles.notificationDot} />
           </Pressable>
@@ -98,20 +210,26 @@ export function SwapRequestsScreen({
           horizontal
           showsHorizontalScrollIndicator={false}
         >
-          {tabs.map(tab => (
+          {tabLabels.map(tab => (
             <Pressable
               key={tab.label}
+              onPress={() => setActiveTab(tab.key)}
               style={[
                 styles.tabButton,
-                tab.active ? styles.tabButtonActive : styles.tabButtonInactive,
+                activeTab === tab.key ? styles.tabButtonActive : styles.tabButtonInactive,
               ]}
             >
-              <Text style={[styles.tabText, tab.active ? styles.tabTextActive : styles.tabTextInactive]}>
+              <Text
+                style={[
+                  styles.tabText,
+                  activeTab === tab.key ? styles.tabTextActive : styles.tabTextInactive,
+                ]}
+              >
                 {tab.label}
               </Text>
-              {tab.badge ? (
+              {counts[tab.key] > 0 ? (
                 <View style={styles.tabBadge}>
-                  <Text style={styles.tabBadgeText}>{tab.badge}</Text>
+                  <Text style={styles.tabBadgeText}>{counts[tab.key]}</Text>
                 </View>
               ) : null}
             </Pressable>
@@ -119,8 +237,11 @@ export function SwapRequestsScreen({
         </ScrollView>
 
         <View style={styles.cardList}>
-          {requests.map(request => (
-            <View key={request.name} style={styles.requestCard}>
+          {visibleRequests.map(request => {
+            const badge = badgeForRequest(request);
+
+            return (
+            <View key={request.id} style={styles.requestCard}>
               <View style={styles.requestTop}>
                 <View style={styles.requestIdentity}>
                   <View style={styles.avatarWrap}>
@@ -135,9 +256,9 @@ export function SwapRequestsScreen({
                   <View style={styles.identityBody}>
                     <View style={styles.identityHeader}>
                       <Text style={styles.requestName}>{request.name}</Text>
-                      <View style={[styles.requestBadge, { backgroundColor: request.badgeColor }]}>
-                        <Text style={[styles.requestBadgeText, { color: request.badgeTextColor }]}>
-                          {request.badge}
+                      <View style={[styles.requestBadge, { backgroundColor: badge.backgroundColor }]}>
+                        <Text style={[styles.requestBadgeText, { color: badge.textColor }]}>
+                          {badge.text}
                         </Text>
                       </View>
                     </View>
@@ -168,27 +289,73 @@ export function SwapRequestsScreen({
 
                 <View style={styles.requestActions}>
                   <Text style={styles.requestTime}>{request.actionTime}</Text>
-                  <View style={styles.buttonRow}>
-                    <Pressable
-                      onPress={() => onNavigate('chats')}
-                      style={({ pressed }) => [
-                        styles.primaryButton,
-                        pressed ? styles.pressed : null,
-                      ]}
-                    >
-                      <Text style={styles.primaryButtonText}>Accept</Text>
-                    </Pressable>
-                    <Pressable style={({ pressed }) => [styles.secondaryButton, pressed ? styles.pressed : null]}>
-                      <Text style={styles.secondaryButtonText}>Reject</Text>
-                    </Pressable>
-                  </View>
+                  {request.status === 'incoming' ? (
+                    <View style={styles.buttonRow}>
+                      <Pressable
+                        onPress={() => updateRequest(request.id, 'accepted')}
+                        style={({ pressed }) => [
+                          styles.primaryButton,
+                          pressed ? styles.pressed : null,
+                        ]}
+                      >
+                        <Text style={styles.primaryButtonText}>Accept</Text>
+                      </Pressable>
+                      <Pressable
+                        onPress={() => updateRequest(request.id, 'completed', 'Declined')}
+                        style={({ pressed }) => [styles.secondaryButton, pressed ? styles.pressed : null]}
+                      >
+                        <Text style={styles.secondaryButtonText}>Reject</Text>
+                      </Pressable>
+                    </View>
+                  ) : null}
+                  {request.status === 'sent' ? (
+                    <View style={styles.buttonRow}>
+                      <Pressable
+                        onPress={() => updateRequest(request.id, 'completed', 'Cancelled')}
+                        style={({ pressed }) => [styles.secondaryButton, pressed ? styles.pressed : null]}
+                      >
+                        <Text style={styles.secondaryButtonText}>Cancel</Text>
+                      </Pressable>
+                    </View>
+                  ) : null}
+                  {request.status === 'accepted' ? (
+                    <View style={styles.buttonRow}>
+                      <Pressable
+                        onPress={() => onNavigate('chats')}
+                        style={({ pressed }) => [
+                          styles.primaryButton,
+                          pressed ? styles.pressed : null,
+                        ]}
+                      >
+                        <Text style={styles.primaryButtonText}>Open Chat</Text>
+                      </Pressable>
+                      <Pressable
+                        onPress={() => {
+                          updateRequest(request.id, 'completed', 'Completed');
+                          onOpenReviews(request.id);
+                        }}
+                        style={({ pressed }) => [styles.secondaryButton, pressed ? styles.pressed : null]}
+                      >
+                        <Text style={styles.secondaryButtonText}>Complete</Text>
+                      </Pressable>
+                    </View>
+                  ) : null}
                 </View>
               </View>
             </View>
-          ))}
+            );
+          })}
+          {visibleRequests.length === 0 ? (
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyStateText}>{emptyStateCopy[activeTab]}</Text>
+            </View>
+          ) : null}
         </View>
 
-        <Pressable style={({ pressed }) => [styles.historyButton, pressed ? styles.pressed : null]}>
+        <Pressable
+          onPress={() => setActiveTab('completed')}
+          style={({ pressed }) => [styles.historyButton, pressed ? styles.pressed : null]}
+        >
           <Text style={styles.historyButtonText}>View Past History</Text>
           <StitchIcon color={stitchColors.primary} name="history" size={20} />
         </Pressable>
@@ -214,7 +381,7 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     borderBottomWidth: 1,
     borderBottomColor: stitchColors.slate200,
-    backgroundColor: 'rgba(255,255,255,0.82)',
+    backgroundColor: stitchColors.white,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -272,6 +439,7 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
     borderRadius: 18,
+    resizeMode: 'cover',
   },
   scrollContent: {
     paddingHorizontal: 16,
@@ -334,6 +502,14 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '700',
   },
+  emptyState: {
+    paddingVertical: 24,
+    alignItems: 'center',
+  },
+  emptyStateText: {
+    color: stitchColors.slate500,
+    fontSize: 14,
+  },
   cardList: {
     gap: 16,
   },
@@ -359,6 +535,7 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 32,
+    resizeMode: 'cover',
   },
   statusDot: {
     position: 'absolute',

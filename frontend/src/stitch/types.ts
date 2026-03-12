@@ -1,4 +1,4 @@
-export type StitchAuthRoute = 'onboarding' | 'login' | 'register' | 'forgot';
+export type StitchAuthRoute = 'onboarding' | 'login' | 'register' | 'forgot' | 'reset';
 
 export type StitchAppRoute =
   | 'home'
@@ -7,6 +7,7 @@ export type StitchAppRoute =
   | 'requests'
   | 'chats'
   | 'profile'
+  | 'saved'
   | 'manageSkills'
   | 'verification'
   | 'reviews'

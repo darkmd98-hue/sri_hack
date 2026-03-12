@@ -5,53 +5,46 @@ import { useAppServices } from '../../context/AppContext';
 import { StitchIcon } from '../icons';
 import { stitchColors, stitchRadius, stitchShadow } from '../theme';
 
-function isPlausibleEmail(value: string): boolean {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
-}
-
-export function ForgotPasswordScreen({
-  email,
+export function ResetPasswordScreen({
   onBack,
-  onEmailChange,
   onLogin,
-  onReset,
 }: {
-  email: string;
   onBack: () => void;
-  onEmailChange: (value: string) => void;
   onLogin: () => void;
-  onReset: () => void;
 }) {
   const { authApi } = useAppServices();
+  const [token, setToken] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const submitResetRequest = async (): Promise<void> => {
-    const normalizedEmail = email.trim().toLowerCase();
-    if (normalizedEmail.length === 0) {
-      Alert.alert('Email required', 'Enter your email address to request a reset link.');
+  const submitReset = async (): Promise<void> => {
+    const normalizedToken = token.trim();
+    if (normalizedToken.length === 0) {
+      Alert.alert('Token required', 'Enter the reset token to continue.');
       return;
     }
-    if (!isPlausibleEmail(normalizedEmail)) {
-      Alert.alert('Invalid email', 'Enter a valid email address.');
+    if (newPassword.length < 8) {
+      Alert.alert('Invalid password', 'Password must be at least 8 characters.');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      Alert.alert('Passwords do not match', 'Make sure both password fields match.');
       return;
     }
 
     setLoading(true);
     try {
-      const message = await authApi.requestPasswordReset(normalizedEmail);
-      Alert.alert('Check your email', message, [
+      const message = await authApi.resetPassword(normalizedToken, newPassword);
+      Alert.alert('Password updated', message, [
         {
           onPress: onLogin,
           text: 'Back to Login',
         },
-        {
-          onPress: onReset,
-          text: 'Enter Reset Token',
-        },
       ]);
     } catch (error) {
       Alert.alert(
-        'Reset request failed',
+        'Reset failed',
         error instanceof Error ? error.message : String(error),
       );
     } finally {
@@ -77,31 +70,63 @@ export function ForgotPasswordScreen({
       <View style={styles.centerWrap}>
         <View style={styles.card}>
           <View style={styles.heroIconWrap}>
-            <StitchIcon color={stitchColors.primary} name="lock_reset" size={42} />
+            <StitchIcon color={stitchColors.primary} name="vpn_key" size={42} />
           </View>
 
           <View style={styles.textWrap}>
-            <Text style={styles.title}>Forgot Password?</Text>
+            <Text style={styles.title}>Reset Password</Text>
             <Text style={styles.subtitle}>
-              No worries, it happens. Enter your email below and we'll send you instructions to
-              reset your password.
+              Enter the reset token and choose a new password for your account.
             </Text>
           </View>
 
           <View style={styles.fieldGroup}>
-            <Text style={styles.label}>Email Address</Text>
+            <Text style={styles.label}>Reset Token</Text>
             <View style={styles.inputWrap}>
               <View style={styles.leftIcon}>
-                <StitchIcon color={stitchColors.slate400} name="mail" size={20} />
+                <StitchIcon color={stitchColors.slate400} name="password" size={20} />
               </View>
               <TextInput
                 autoCapitalize="none"
-                keyboardType="email-address"
-                onChangeText={onEmailChange}
-                placeholder="name@email.com"
+                onChangeText={setToken}
+                placeholder="Paste reset token"
                 placeholderTextColor={stitchColors.slate400}
                 style={styles.input}
-                value={email}
+                value={token}
+              />
+            </View>
+          </View>
+
+          <View style={styles.fieldGroup}>
+            <Text style={styles.label}>New Password</Text>
+            <View style={styles.inputWrap}>
+              <View style={styles.leftIcon}>
+                <StitchIcon color={stitchColors.slate400} name="lock" size={20} />
+              </View>
+              <TextInput
+                onChangeText={setNewPassword}
+                placeholder="Enter new password"
+                placeholderTextColor={stitchColors.slate400}
+                secureTextEntry
+                style={styles.input}
+                value={newPassword}
+              />
+            </View>
+          </View>
+
+          <View style={styles.fieldGroup}>
+            <Text style={styles.label}>Confirm Password</Text>
+            <View style={styles.inputWrap}>
+              <View style={styles.leftIcon}>
+                <StitchIcon color={stitchColors.slate400} name="lock_outline" size={20} />
+              </View>
+              <TextInput
+                onChangeText={setConfirmPassword}
+                placeholder="Confirm new password"
+                placeholderTextColor={stitchColors.slate400}
+                secureTextEntry
+                style={styles.input}
+                value={confirmPassword}
               />
             </View>
           </View>
@@ -109,7 +134,7 @@ export function ForgotPasswordScreen({
           <Pressable
             disabled={loading}
             onPress={() => {
-              submitResetRequest().catch(() => {
+              submitReset().catch(() => {
                 // Alert handling already covers failures.
               });
             }}
@@ -119,8 +144,8 @@ export function ForgotPasswordScreen({
               pressed ? styles.pressed : null,
             ]}
           >
-            <Text style={styles.primaryButtonText}>{loading ? 'Sending...' : 'Send Reset Link'}</Text>
-            <StitchIcon color={stitchColors.white} name="send" size={18} />
+            <Text style={styles.primaryButtonText}>{loading ? 'Resetting...' : 'Reset Password'}</Text>
+            <StitchIcon color={stitchColors.white} name="check_circle" size={18} />
           </Pressable>
 
           <Pressable onPress={onLogin} style={({ pressed }) => [styles.backLink, pressed ? styles.pressed : null]}>

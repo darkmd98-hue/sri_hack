@@ -45,6 +45,28 @@ export class AuthApi {
     };
   }
 
+  async requestPasswordReset(email: string): Promise<string> {
+    const data = asRecord(
+      await this.client.post('/auth/forgot', {
+        email,
+      }),
+    );
+    return asString(
+      data.message,
+      'If an account exists for that email, password reset instructions will be sent shortly.',
+    );
+  }
+
+  async resetPassword(token: string, newPassword: string): Promise<string> {
+    const data = asRecord(
+      await this.client.post('/auth/reset-password', {
+        new_password: newPassword,
+        token,
+      }),
+    );
+    return asString(data.message, 'Password updated successfully.');
+  }
+
   async me(): Promise<User> {
     const data = asRecord(await this.client.get('/me'));
     return parseUser(data.user);

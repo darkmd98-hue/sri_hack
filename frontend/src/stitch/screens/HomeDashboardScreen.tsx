@@ -10,6 +10,7 @@ const recommendedMatches = [
   {
     distance: '2.4 miles away',
     name: 'Sarah Jenkins',
+    reportedUserId: 2,
     teaches: 'Python',
     wants: 'Spanish',
     uri: stitchImages.sarahJenkins,
@@ -18,6 +19,7 @@ const recommendedMatches = [
   {
     distance: '0.8 miles away',
     name: 'Marcus Chen',
+    reportedUserId: 3,
     teaches: 'Guitar',
     wants: 'Photography',
     uri: stitchImages.marcusChen,
@@ -26,6 +28,7 @@ const recommendedMatches = [
   {
     distance: '5.1 miles away',
     name: 'Elena Rodriguez',
+    reportedUserId: 4,
     teaches: 'Digital Marketing',
     wants: 'Cooking',
     uri: stitchImages.elenaRodriguez,
@@ -35,8 +38,10 @@ const recommendedMatches = [
 
 export function HomeDashboardScreen({
   onNavigate,
+  onOpenPublicProfile,
 }: {
   onNavigate: (route: StitchAppRoute) => void;
+  onOpenPublicProfile: (reportedUserId: number) => void;
 }) {
   return (
     <View style={styles.container}>
@@ -50,7 +55,10 @@ export function HomeDashboardScreen({
           </View>
 
           <View style={styles.headerActions}>
-            <Pressable style={({ pressed }) => [styles.iconButton, pressed ? styles.pressed : null]}>
+            <Pressable
+              onPress={() => onNavigate('requests')}
+              style={({ pressed }) => [styles.iconButton, pressed ? styles.pressed : null]}
+            >
               <StitchIcon color={stitchColors.text} name="notifications" size={22} />
             </Pressable>
             <Pressable onPress={() => onNavigate('profile')}>
@@ -67,7 +75,10 @@ export function HomeDashboardScreen({
             </Text>
           </View>
 
-          <View style={styles.searchWrap}>
+          <Pressable
+            onPress={() => onNavigate('explore')}
+            style={({ pressed }) => [styles.searchWrap, pressed ? styles.pressed : null]}
+          >
             <StitchIcon color={stitchColors.slate400} name="search" size={20} />
             <TextInput
               editable={false}
@@ -75,7 +86,7 @@ export function HomeDashboardScreen({
               placeholderTextColor={stitchColors.slate400}
               style={styles.searchInput}
             />
-          </View>
+          </Pressable>
 
           <View style={styles.statsRow}>
             <Pressable
@@ -141,7 +152,7 @@ export function HomeDashboardScreen({
             {recommendedMatches.map(match => (
               <Pressable
                 key={match.name}
-                onPress={() => onNavigate('publicProfile')}
+                onPress={() => onOpenPublicProfile(match.reportedUserId)}
                 style={({ pressed }) => [styles.matchCard, pressed ? styles.pressed : null]}
               >
                 <Image source={{ uri: match.uri }} style={styles.matchImage} />
@@ -210,7 +221,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: 'rgba(246,246,248,0.85)',
+    backgroundColor: stitchColors.background,
   },
   brandRow: {
     flexDirection: 'row',
@@ -248,6 +259,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     borderWidth: 2,
     borderColor: stitchColors.primary,
+    resizeMode: 'cover',
   },
   content: {
     paddingTop: 88,
@@ -372,6 +384,7 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 16,
+    resizeMode: 'cover',
   },
   matchBody: {
     flex: 1,
@@ -442,7 +455,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingTop: 12,
     paddingBottom: 20,
-    backgroundColor: 'rgba(255,255,255,0.94)',
+    backgroundColor: stitchColors.white,
     borderTopWidth: 1,
     borderTopColor: stitchColors.slate200,
   },

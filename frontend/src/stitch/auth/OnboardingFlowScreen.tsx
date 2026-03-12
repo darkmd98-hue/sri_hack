@@ -290,7 +290,7 @@ const styles = StyleSheet.create({
     gap: 12,
     borderRadius: 12,
     padding: 12,
-    backgroundColor: 'rgba(255,255,255,0.86)',
+    backgroundColor: stitchColors.white,
     borderWidth: 1,
     borderColor: stitchColors.slate200,
   },

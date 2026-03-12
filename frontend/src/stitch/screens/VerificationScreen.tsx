@@ -1,5 +1,8 @@
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useState } from 'react';
+import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { launchImageLibrary } from 'react-native-image-picker';
 
+import { useAppServices } from '../../context/AppContext';
 import { StitchIcon } from '../icons';
 import { stitchColors, stitchRadius, stitchShadow } from '../theme';
 
@@ -8,6 +11,45 @@ export function VerificationScreen({
 }: {
   onBack: () => void;
 }) {
+  const { profileApi } = useAppServices();
+  const [uploading, setUploading] = useState(false);
+
+  const pickAndUpload = async (): Promise<void> => {
+    const picker = await launchImageLibrary({
+      mediaType: 'photo',
+      selectionLimit: 1,
+      quality: 0.9,
+    });
+
+    if (picker.didCancel) {
+      return;
+    }
+
+    const asset = picker.assets?.[0];
+    if (asset?.uri === undefined || asset.uri.length === 0) {
+      Alert.alert('Upload failed', 'Could not read the selected image.');
+      return;
+    }
+
+    setUploading(true);
+    try {
+      await profileApi.uploadVerificationDoc(
+        {
+          uri: asset.uri,
+          name: asset.fileName ?? 'verification.jpg',
+          type: asset.type ?? 'image/jpeg',
+        },
+        'college_id',
+      );
+      Alert.alert('Upload complete', 'Your ID was uploaded and is pending review.');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error ?? 'Upload failed');
+      Alert.alert('Upload failed', message);
+    } finally {
+      setUploading(false);
+    }
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -70,9 +112,23 @@ export function VerificationScreen({
               </View>
             </View>
 
-            <Pressable style={({ pressed }) => [styles.uploadButton, pressed ? styles.pressed : null]}>
+            <Pressable
+              disabled={uploading}
+              onPress={() => {
+                pickAndUpload().catch(() => {
+                  // Upload feedback is shown with alerts.
+                });
+              }}
+              style={({ pressed }) => [
+                styles.uploadButton,
+                uploading ? styles.disabled : null,
+                pressed ? styles.pressed : null,
+              ]}
+            >
               <StitchIcon color={stitchColors.white} name="upload_file" size={20} />
-              <Text style={styles.uploadButtonText}>Upload ID</Text>
+              <Text style={styles.uploadButtonText}>
+                {uploading ? 'Uploading...' : 'Upload ID'}
+              </Text>
             </Pressable>
           </View>
         </View>
@@ -361,5 +417,8 @@ const styles = StyleSheet.create({
   },
   pressed: {
     opacity: 0.85,
+  },
+  disabled: {
+    opacity: 0.7,
   },
 });

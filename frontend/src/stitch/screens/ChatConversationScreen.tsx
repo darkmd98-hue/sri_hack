@@ -126,8 +126,32 @@ export function ChatConversationScreen({
   variant: keyof typeof variants;
 }) {
   const [draft, setDraft] = useState('');
+  const [threadMessages, setThreadMessages] = useState<ConversationMessage[]>(
+    messagesByVariant[variant],
+  );
   const screen = variants[variant];
-  const messages = messagesByVariant[variant];
+
+  const sendDraft = (): void => {
+    const normalized = draft.trim();
+    if (normalized.length === 0) {
+      return;
+    }
+
+    const time = new Date().toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+    });
+
+    setThreadMessages(previous => [
+      ...previous,
+      {
+        mine: true,
+        text: normalized,
+        time,
+      },
+    ]);
+    setDraft('');
+  };
 
   return (
     <KeyboardAvoidingView
@@ -166,7 +190,7 @@ export function ChatConversationScreen({
           <Text style={[styles.datePillText, { color: screen.dateTextColor }]}>Today</Text>
         </View>
 
-        {messages.map((message, index) => (
+        {threadMessages.map((message, index) => (
           <View
             key={`${variant}-${index}`}
             style={[
@@ -235,6 +259,7 @@ export function ChatConversationScreen({
           <View style={[styles.inputWrap, { backgroundColor: screen.composerInputBackground }]}>
             <TextInput
               onChangeText={setDraft}
+              onSubmitEditing={sendDraft}
               placeholder="Type your message..."
               placeholderTextColor={stitchColors.slate500}
               style={styles.composerInput}
@@ -246,7 +271,7 @@ export function ChatConversationScreen({
           </View>
 
           <Pressable
-            onPress={() => setDraft('')}
+            onPress={sendDraft}
             style={({ pressed }) => [styles.sendButton, pressed ? styles.pressed : null]}
           >
             <StitchIcon color={stitchColors.white} name="send" size={20} />
@@ -268,8 +293,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(55,19,236,0.10)',
-    backgroundColor: 'rgba(255,255,255,0.85)',
+    borderBottomColor: stitchColors.slate200,
+    backgroundColor: stitchColors.white,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -302,6 +327,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     borderWidth: 2,
     borderColor: 'rgba(55,19,236,0.20)',
+    resizeMode: 'cover',
   },
   onlineDot: {
     position: 'absolute',
@@ -362,6 +388,7 @@ const styles = StyleSheet.create({
     height: 32,
     borderRadius: 16,
     marginBottom: 16,
+    resizeMode: 'cover',
   },
   avatarPlaceholder: {
     opacity: 0,
@@ -385,7 +412,7 @@ const styles = StyleSheet.create({
   messageBubbleMarcus: {
     backgroundColor: stitchColors.white,
     borderWidth: 1,
-    borderColor: 'rgba(55,19,236,0.05)',
+    borderColor: stitchColors.slate100,
     ...stitchShadow.card,
   },
   messageBubbleMine: {

@@ -1,4 +1,5 @@
-import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useState } from 'react';
+import { Alert, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { stitchImages } from '../data';
 import { StitchIcon } from '../icons';
@@ -17,13 +18,66 @@ function FiveStars() {
   );
 }
 
+const bioVariants = [
+  'Passionate about visual storytelling and clean interfaces. Looking to swap UI/UX design mentoring for advanced portrait photography tips and studio lighting techniques.',
+  'Product designer focused on mobile flows, design systems, and mentorship. Happy to trade interface reviews for better portrait composition and low-light photography guidance.',
+  'I love turning rough ideas into polished interfaces. Looking to exchange UX thinking and Figma workflow help for hands-on camera setup and editing advice.',
+];
+
+const availabilityVariants = [
+  {
+    subtitle: 'Timezone: UTC-5 (EST)',
+    title: 'Weekends & Weekdays after 6PM',
+  },
+  {
+    subtitle: 'Timezone: UTC-5 (EST)',
+    title: 'Tuesdays, Thursdays & Saturday mornings',
+  },
+  {
+    subtitle: 'Timezone: UTC-5 (EST)',
+    title: 'Weekdays before 9AM and Sundays',
+  },
+];
+
 export function MyProfileScreen({
   onBack,
   onNavigate,
+  onOpenReviews,
 }: {
   onBack: () => void;
   onNavigate: (route: StitchAppRoute) => void;
+  onOpenReviews: () => void;
 }) {
+  const [bioIndex, setBioIndex] = useState(0);
+  const [availabilityIndex, setAvailabilityIndex] = useState(0);
+
+  const cycleBio = (): void => {
+    setBioIndex(previous => (previous + 1) % bioVariants.length);
+  };
+
+  const cycleAvailability = (): void => {
+    setAvailabilityIndex(previous => (previous + 1) % availabilityVariants.length);
+  };
+
+  const openEditMenu = (): void => {
+    Alert.alert('Update profile', 'Choose what to update.', [
+      {
+        onPress: cycleBio,
+        text: 'Bio',
+      },
+      {
+        onPress: cycleAvailability,
+        text: 'Availability',
+      },
+      {
+        style: 'cancel',
+        text: 'Cancel',
+      },
+    ]);
+  };
+
+  const activeAvailability = availabilityVariants[availabilityIndex] ?? availabilityVariants[0];
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -31,7 +85,10 @@ export function MyProfileScreen({
           <StitchIcon color={stitchColors.slate700} name="arrow_back" size={22} />
         </Pressable>
         <Text style={styles.headerTitle}>My Profile</Text>
-        <Pressable style={({ pressed }) => [styles.editBadge, pressed ? styles.pressed : null]}>
+        <Pressable
+          onPress={openEditMenu}
+          style={({ pressed }) => [styles.editBadge, pressed ? styles.pressed : null]}
+        >
           <StitchIcon color={stitchColors.primary} name="edit" size={20} />
         </Pressable>
       </View>
@@ -87,13 +144,11 @@ export function MyProfileScreen({
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>Bio</Text>
-              <Pressable>
+              <Pressable onPress={cycleBio}>
                 <Text style={styles.linkText}>Edit</Text>
               </Pressable>
             </View>
-            <Text style={styles.sectionBody}>
-              Passionate about visual storytelling and clean interfaces. Looking to swap UI/UX design mentoring for advanced portrait photography tips and studio lighting techniques.
-            </Text>
+            <Text style={styles.sectionBody}>{bioVariants[bioIndex] ?? bioVariants[0]}</Text>
           </View>
 
           <View style={styles.section}>
@@ -122,7 +177,7 @@ export function MyProfileScreen({
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>Availability</Text>
-              <Pressable>
+              <Pressable onPress={cycleAvailability}>
                 <Text style={styles.linkText}>Update</Text>
               </Pressable>
             </View>
@@ -131,8 +186,8 @@ export function MyProfileScreen({
                 <StitchIcon color={stitchColors.white} name="calendar_today" size={20} />
               </View>
               <View>
-                <Text style={styles.availabilityTitle}>Weekends &amp; Weekdays after 6PM</Text>
-                <Text style={styles.availabilitySubtitle}>Timezone: UTC-5 (EST)</Text>
+                <Text style={styles.availabilityTitle}>{activeAvailability.title}</Text>
+                <Text style={styles.availabilitySubtitle}>{activeAvailability.subtitle}</Text>
               </View>
             </View>
           </View>
@@ -140,7 +195,7 @@ export function MyProfileScreen({
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>Reviews Received</Text>
-              <Pressable onPress={() => onNavigate('reviews')}>
+              <Pressable onPress={onOpenReviews}>
                 <Text style={styles.linkText}>See All</Text>
               </Pressable>
             </View>
@@ -180,7 +235,7 @@ export function MyProfileScreen({
             <StitchIcon color={stitchColors.white} name="add" size={30} />
           </Pressable>
         </View>
-        <Pressable style={styles.navItem}>
+        <Pressable onPress={() => onNavigate('saved')} style={styles.navItem}>
           <StitchIcon color={stitchColors.slate400} name="favorite" size={24} />
           <Text style={styles.navText}>Saved</Text>
         </Pressable>
@@ -201,7 +256,7 @@ const styles = StyleSheet.create({
   header: {
     paddingHorizontal: 16,
     paddingVertical: 16,
-    backgroundColor: 'rgba(255,255,255,0.80)',
+    backgroundColor: stitchColors.white,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -250,6 +305,7 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
     borderRadius: 64,
+    resizeMode: 'cover',
   },
   cameraButton: {
     position: 'absolute',
@@ -442,6 +498,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
+    resizeMode: 'cover',
   },
   reviewName: {
     color: stitchColors.text,
@@ -475,7 +532,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 10,
     paddingBottom: 20,
-    backgroundColor: 'rgba(255,255,255,0.92)',
+    backgroundColor: stitchColors.white,
     borderTopWidth: 1,
     borderTopColor: stitchColors.slate200,
   },

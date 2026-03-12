@@ -5,6 +5,7 @@ import { useStoreSelector } from '../state/store';
 import { ForgotPasswordScreen } from './auth/ForgotPasswordScreen';
 import { LoginScreen } from './auth/LoginScreen';
 import { OnboardingFlowScreen } from './auth/OnboardingFlowScreen';
+import { ResetPasswordScreen } from './auth/ResetPasswordScreen';
 import { RegisterScreen } from './auth/RegisterScreen';
 import { StitchAuthRoute } from './types';
 
@@ -54,6 +55,14 @@ export function StitchAuthFlow() {
           onBack={() => setRoute('login')}
           onEmailChange={setForgotEmail}
           onLogin={() => setRoute('login')}
+          onReset={() => setRoute('reset')}
+        />
+      );
+    case 'reset':
+      return (
+        <ResetPasswordScreen
+          onBack={() => setRoute('forgot')}
+          onLogin={() => setRoute('login')}
         />
       );
     case 'register':
@@ -86,6 +95,7 @@ export function StitchAuthFlow() {
           email={loginEmail}
           error={error}
           loading={loading}
+          onClose={() => setRoute('onboarding')}
           onEmailChange={setLoginEmail}
           onForgot={() => setRoute('forgot')}
           onLogin={submitLogin}
