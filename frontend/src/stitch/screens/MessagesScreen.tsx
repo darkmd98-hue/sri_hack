@@ -89,6 +89,10 @@ export function MessagesScreen({
 }) {
   const [query, setQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState<MessageFilter>('All');
+  const [filterBarWidth, setFilterBarWidth] = useState(0);
+
+  const activeFilterIndex = filters.indexOf(activeFilter);
+  const filterTabWidth = filterBarWidth > 0 ? filterBarWidth / filters.length : 0;
 
   const filteredConversations = useMemo(() => {
     const normalized = query.trim().toLowerCase();
@@ -130,31 +134,42 @@ export function MessagesScreen({
           />
         </View>
 
-        <ScrollView
-          contentContainerStyle={styles.filterRow}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-        >
-          {filters.map(filter => (
-            <Pressable
-              key={filter}
-              onPress={() => setActiveFilter(filter)}
+        <View style={styles.filterRowWrap}>
+          <View
+            onLayout={event => {
+              setFilterBarWidth(event.nativeEvent.layout.width);
+            }}
+            style={styles.filterRow}
+          >
+            <View
+              pointerEvents="none"
               style={[
-                styles.filterChip,
-                activeFilter === filter ? styles.filterChipActive : null,
+                styles.filterIndicator,
+                {
+                  left: activeFilterIndex * filterTabWidth,
+                  width: filterTabWidth,
+                },
               ]}
-            >
-              <Text
-                style={[
-                  styles.filterChipText,
-                  activeFilter === filter ? styles.filterChipTextActive : null,
-                ]}
+            />
+            {filters.map(filter => (
+              <Pressable
+                key={filter}
+                onPress={() => setActiveFilter(filter)}
+                style={styles.filterChip}
               >
-                {filter}
-              </Text>
-            </Pressable>
-          ))}
-        </ScrollView>
+                <Text
+                  numberOfLines={1}
+                  style={[
+                    styles.filterChipText,
+                    activeFilter === filter ? styles.filterChipTextActive : null,
+                  ]}
+                >
+                  {filter}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+        </View>
 
         <ScrollView contentContainerStyle={styles.listContent} showsVerticalScrollIndicator={false}>
           {filteredConversations.map(item => (
@@ -324,24 +339,41 @@ const styles = StyleSheet.create({
     color: stitchColors.text,
     fontSize: 14,
   },
-  filterRow: {
-    gap: 8,
+  filterRowWrap: {
     paddingHorizontal: 16,
     paddingVertical: 12,
   },
-  filterChip: {
-    paddingHorizontal: 16,
-    paddingVertical: 6,
+  filterRow: {
+    position: 'relative',
+    flexDirection: 'row',
+    alignItems: 'center',
+    height: 40,
     borderRadius: stitchRadius.pill,
     backgroundColor: stitchColors.slate100,
+    overflow: 'hidden',
   },
-  filterChipActive: {
+  filterIndicator: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    height: '100%',
+    borderRadius: stitchRadius.pill,
     backgroundColor: stitchColors.primary,
+    zIndex: 0,
+  },
+  filterChip: {
+    flex: 1,
+    height: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 16,
+    zIndex: 1,
   },
   filterChipText: {
     color: stitchColors.slate600,
     fontSize: 14,
     fontWeight: '500',
+    textAlign: 'center',
   },
   filterChipTextActive: {
     color: stitchColors.white,
