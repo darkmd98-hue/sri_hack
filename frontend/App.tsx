@@ -1,12 +1,13 @@
 import { useEffect } from 'react';
-import { ActivityIndicator, StatusBar, StyleSheet, Text, View } from 'react-native';
+import { StatusBar, StyleSheet } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 
 import { AppProvider, useAppServices } from './src/context/AppContext';
 import { AppShell } from './src/screens/AppShell';
 import { AuthScreen } from './src/screens/auth/AuthScreen';
+import { StitchSplashScreen } from './src/stitch/auth/SplashScreen';
+import { stitchColors } from './src/stitch/theme';
 import { useStoreSelector } from './src/state/store';
-import { colors } from './src/ui/theme';
 
 function AppRoot() {
   const { authStore } = useAppServices();
@@ -20,12 +21,7 @@ function AppRoot() {
   }, [authStore]);
 
   if (!hasBootstrapped) {
-    return (
-      <View style={styles.loading}>
-        <ActivityIndicator color={colors.primary} size="large" />
-        <Text style={styles.loadingText}>Preparing Skill Swap...</Text>
-      </View>
-    );
+    return <StitchSplashScreen />;
   }
 
   return isLoggedIn ? <AppShell /> : <AuthScreen />;
@@ -34,7 +30,7 @@ function AppRoot() {
 function App() {
   return (
     <SafeAreaProvider>
-      <StatusBar backgroundColor={colors.bg} barStyle="dark-content" />
+      <StatusBar backgroundColor={stitchColors.background} barStyle="dark-content" />
       <SafeAreaView edges={['top']} style={styles.safeArea}>
         <AppProvider>
           <AppRoot />
@@ -47,17 +43,7 @@ function App() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: colors.bg,
-  },
-  loading: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 10,
-  },
-  loadingText: {
-    color: colors.textMuted,
-    fontSize: 15,
+    backgroundColor: stitchColors.background,
   },
 });
 
