@@ -15,6 +15,8 @@ final class AuthController
         $year = isset($input['year']) ? (int) $input['year'] : null;
         $bio = isset($input['bio']) ? trim((string) $input['bio']) : null;
 
+        enforceRateLimit($pdo, 'auth:register', 5, 600, $email);
+
         if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
             jsonResponse(422, false, null, 'Invalid email');
         }
@@ -70,6 +72,8 @@ final class AuthController
         $email = strtolower(trim((string) $input['email']));
         $password = (string) $input['password'];
 
+        enforceRateLimit($pdo, 'auth:login', 10, 300, $email);
+
         $stmt = $pdo->prepare(
             'SELECT id, role, name, email, dept, year, bio, avatar_url, verification_status, password_hash
              FROM users WHERE email = :email LIMIT 1'
@@ -100,11 +104,12 @@ final class AuthController
         requireFields($input, ['email']);
 
         $email = strtolower(trim((string) $input['email']));
+        enforceRateLimit($pdo, 'auth:forgot', 5, 600, $email);
+
         if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
             jsonResponse(422, false, null, 'Invalid email');
         }
 
-        self::ensurePasswordResetTable($pdo);
         $pdo->exec('DELETE FROM password_reset_tokens WHERE expires_at < NOW()');
 
         $lookupStmt = $pdo->prepare('SELECT id FROM users WHERE email = :email LIMIT 1');
@@ -149,6 +154,8 @@ final class AuthController
         $token = trim((string) $input['token']);
         $newPassword = (string) $input['new_password'];
 
+        enforceRateLimit($pdo, 'auth:reset-password', 5, 600, $token !== '' ? $token : null);
+
         if ($token === '') {
             jsonResponse(422, false, null, 'Reset token is required');
         }
@@ -156,7 +163,6 @@ final class AuthController
             jsonResponse(422, false, null, 'Password must be at least 8 characters');
         }
 
-        self::ensurePasswordResetTable($pdo);
         $pdo->exec('DELETE FROM password_reset_tokens WHERE expires_at < NOW()');
 
         $tokenHash = hash('sha256', $token);
@@ -239,22 +245,6 @@ final class AuthController
                 'learn_count' => (int) $stats['learn_count'],
             ],
         ]);
-    }
-
-    private static function ensurePasswordResetTable(PDO $pdo): void
-    {
-        $pdo->exec(
-            'CREATE TABLE IF NOT EXISTS password_reset_tokens (
-                id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-                user_id INT UNSIGNED NOT NULL,
-                token_hash CHAR(64) NOT NULL UNIQUE,
-                expires_at DATETIME NOT NULL,
-                created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                INDEX idx_password_reset_tokens_user (user_id),
-                INDEX idx_password_reset_tokens_expiry (expires_at),
-                CONSTRAINT fk_password_reset_tokens_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-            ) ENGINE=InnoDB'
-        );
     }
 }
 

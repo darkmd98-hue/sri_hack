@@ -39,6 +39,16 @@ CREATE TABLE IF NOT EXISTS password_reset_tokens (
     CONSTRAINT fk_password_reset_tokens_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
+CREATE TABLE IF NOT EXISTS rate_limit_events (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    action VARCHAR(64) NOT NULL,
+    ip_address VARCHAR(45) NOT NULL,
+    identifier_hash CHAR(64) DEFAULT NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_rate_limit_ip (action, ip_address, created_at),
+    INDEX idx_rate_limit_identifier (action, identifier_hash, created_at)
+) ENGINE=InnoDB;
+
 CREATE TABLE IF NOT EXISTS skills (
     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(120) NOT NULL UNIQUE,

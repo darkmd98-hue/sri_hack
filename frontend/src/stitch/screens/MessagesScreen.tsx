@@ -141,16 +141,18 @@ export function MessagesScreen({
             }}
             style={styles.filterRow}
           >
-            <View
-              pointerEvents="none"
-              style={[
-                styles.filterIndicator,
-                {
-                  left: activeFilterIndex * filterTabWidth,
-                  width: filterTabWidth,
-                },
-              ]}
-            />
+            {filterTabWidth > 0 ? (
+              <View
+                pointerEvents="none"
+                style={[
+                  styles.filterIndicator,
+                  {
+                    left: activeFilterIndex * filterTabWidth,
+                    width: filterTabWidth,
+                  },
+                ]}
+              />
+            ) : null}
             {filters.map(filter => (
               <Pressable
                 key={filter}

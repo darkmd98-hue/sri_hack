@@ -85,6 +85,86 @@ final class MatchingService
         $stmt->execute();
         $rows = $stmt->fetchAll();
 
+        $skillsByCandidate = [];
+        $candidateIds = array_map(static fn(array $row): int => (int) $row['id'], $rows);
+        if ($candidateIds !== []) {
+            $teachCandidateParams = [];
+            $learnCandidateParams = [];
+            $skillParams = [
+                'current_user_id_1' => $currentUserId,
+                'current_user_id_2' => $currentUserId,
+            ];
+
+            foreach ($candidateIds as $index => $candidateId) {
+                $teachParam = 'teach_candidate_' . $index;
+                $learnParam = 'learn_candidate_' . $index;
+                $teachCandidateParams[] = ':' . $teachParam;
+                $learnCandidateParams[] = ':' . $learnParam;
+                $skillParams[$teachParam] = $candidateId;
+                $skillParams[$learnParam] = $candidateId;
+            }
+
+            $skillsSql = '
+                SELECT candidate_user_id, skill_id, skill_name
+                FROM (
+                    SELECT
+                        uts_b.user_id AS candidate_user_id,
+                        s.id AS skill_id,
+                        s.name AS skill_name
+                    FROM skills s
+                    INNER JOIN user_teach_skills uts_b
+                        ON uts_b.skill_id = s.id
+                       AND uts_b.is_active = 1
+                    INNER JOIN user_learn_skills ul_a
+                        ON ul_a.skill_id = s.id
+                       AND ul_a.user_id = :current_user_id_1
+                    WHERE uts_b.user_id IN (' . implode(', ', $teachCandidateParams) . ')
+
+                    UNION
+
+                    SELECT
+                        ul_b.user_id AS candidate_user_id,
+                        s.id AS skill_id,
+                        s.name AS skill_name
+                    FROM skills s
+                    INNER JOIN user_teach_skills uts_a
+                        ON uts_a.skill_id = s.id
+                       AND uts_a.user_id = :current_user_id_2
+                       AND uts_a.is_active = 1
+                    INNER JOIN user_learn_skills ul_b
+                        ON ul_b.skill_id = s.id
+                    WHERE ul_b.user_id IN (' . implode(', ', $learnCandidateParams) . ')
+                ) matching_skills
+                ORDER BY candidate_user_id ASC, skill_name ASC';
+
+            $skillsStmt = $pdo->prepare($skillsSql);
+            foreach ($skillParams as $key => $value) {
+                $skillsStmt->bindValue($key, $value, PDO::PARAM_INT);
+            }
+            $skillsStmt->execute();
+
+            $seenSkillsByCandidate = [];
+            foreach ($skillsStmt->fetchAll() as $skillRow) {
+                $candidateId = (int) $skillRow['candidate_user_id'];
+                $skillId = (int) $skillRow['skill_id'];
+                $seenSkillsByCandidate[$candidateId] ??= [];
+                $skillsByCandidate[$candidateId] ??= [];
+
+                if (isset($seenSkillsByCandidate[$candidateId][$skillId])) {
+                    continue;
+                }
+                if (count($skillsByCandidate[$candidateId]) >= 5) {
+                    continue;
+                }
+
+                $seenSkillsByCandidate[$candidateId][$skillId] = true;
+                $skillsByCandidate[$candidateId][] = [
+                    'id' => $skillId,
+                    'name' => (string) $skillRow['skill_name'],
+                ];
+            }
+        }
+
         $result = [];
         foreach ($rows as $row) {
             $teachCount = (int) $row['reciprocal_teach_count'];
@@ -109,24 +189,6 @@ final class MatchingService
                 $score -= 20;
             }
 
-            $skillsStmt = $pdo->prepare(
-                '(SELECT s.id, s.name
-                  FROM skills s
-                  INNER JOIN user_teach_skills uts_b ON uts_b.skill_id = s.id AND uts_b.user_id = :candidate_1 AND uts_b.is_active = 1
-                  INNER JOIN user_learn_skills ul_a ON ul_a.skill_id = s.id AND ul_a.user_id = :current_1)
-                 UNION
-                 (SELECT s.id, s.name
-                  FROM skills s
-                  INNER JOIN user_teach_skills uts_a ON uts_a.skill_id = s.id AND uts_a.user_id = :current_2 AND uts_a.is_active = 1
-                  INNER JOIN user_learn_skills ul_b ON ul_b.skill_id = s.id AND ul_b.user_id = :candidate_2)
-                 LIMIT 5'
-            );
-            $skillsStmt->bindValue('candidate_1', (int) $row['id'], PDO::PARAM_INT);
-            $skillsStmt->bindValue('candidate_2', (int) $row['id'], PDO::PARAM_INT);
-            $skillsStmt->bindValue('current_1', $currentUserId, PDO::PARAM_INT);
-            $skillsStmt->bindValue('current_2', $currentUserId, PDO::PARAM_INT);
-            $skillsStmt->execute();
-
             $result[] = [
                 'id' => (int) $row['id'],
                 'name' => (string) $row['name'],
@@ -139,7 +201,7 @@ final class MatchingService
                 'reciprocal_learn_count' => $learnCount,
                 'availability_overlap_count' => $overlapCount,
                 'match_score' => max(0, min(100, $score)),
-                'top_matching_skills' => $skillsStmt->fetchAll(),
+                'top_matching_skills' => $skillsByCandidate[(int) $row['id']] ?? [],
             ];
         }
 

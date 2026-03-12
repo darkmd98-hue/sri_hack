@@ -207,7 +207,7 @@ final class ChatService
             if ($messages !== []) {
                 return $messages;
             }
-            usleep(900000);
+            usleep(2500000);
         }
 
         return [];

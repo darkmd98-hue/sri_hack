@@ -119,7 +119,7 @@ export class ChatStore extends Store {
           if (this.activeConversationId !== conversationId || this.pollVersion !== version) {
             return;
           }
-          this.pollTimer = setTimeout(loop, 250);
+          this.pollTimer = setTimeout(loop, 1500);
         });
     };
 

@@ -45,6 +45,16 @@ final class Router
                 $handler($params);
                 return;
             } catch (Throwable $error) {
+                error_log(
+                    sprintf(
+                        '[SkillSwap Router] %s in %s:%d%s%s',
+                        $error->getMessage(),
+                        $error->getFile(),
+                        $error->getLine(),
+                        PHP_EOL,
+                        $error->getTraceAsString()
+                    )
+                );
                 jsonResponse(500, false, null, 'Internal server error');
             }
         }

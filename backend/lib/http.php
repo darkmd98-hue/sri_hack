@@ -3,9 +3,39 @@ declare(strict_types=1);
 
 function applyCorsHeaders(): void
 {
-    header('Access-Control-Allow-Origin: *');
+    $origin = $_SERVER['HTTP_ORIGIN'] ?? '';
+    if ($origin !== '' && in_array($origin, corsAllowedOrigins(), true)) {
+        header('Access-Control-Allow-Origin: ' . $origin);
+        header('Vary: Origin');
+    }
     header('Access-Control-Allow-Headers: Content-Type, Authorization');
     header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
+}
+
+function corsAllowedOrigins(): array
+{
+    static $allowedOrigins = null;
+    if ($allowedOrigins !== null) {
+        return $allowedOrigins;
+    }
+
+    $env = require __DIR__ . '/../config/env.php';
+    $rawOrigins = $env['allowed_origins'] ?? '';
+    if (!is_string($rawOrigins) || trim($rawOrigins) === '') {
+        $allowedOrigins = [];
+        return $allowedOrigins;
+    }
+
+    $allowedOrigins = array_values(
+        array_unique(
+            array_filter(
+                array_map('trim', explode(',', $rawOrigins)),
+                static fn(string $value): bool => $value !== ''
+            )
+        )
+    );
+
+    return $allowedOrigins;
 }
 
 function jsonInput(): array
