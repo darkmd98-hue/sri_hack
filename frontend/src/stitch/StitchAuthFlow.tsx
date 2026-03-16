@@ -23,7 +23,7 @@ export function StitchAuthFlow() {
   const [loginPassword, setLoginPassword] = useState('');
   const [forgotEmail, setForgotEmail] = useState('');
   const [registerName, setRegisterName] = useState('Alex Rivera');
-  const [registerEmail, setRegisterEmail] = useState('alex.rivera@');
+  const [registerEmail, setRegisterEmail] = useState('');
   const [registerPassword, setRegisterPassword] = useState('');
   const [department, setDepartment] = useState('Design');
   const [year, setYear] = useState('Freshman');

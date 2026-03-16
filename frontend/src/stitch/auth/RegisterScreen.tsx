@@ -15,6 +15,10 @@ import { stitchColors, stitchRadius, stitchShadow } from '../theme';
 const departments = ['Design', 'Engineering', 'Business', 'Science'];
 const years = ['Freshman', 'Sophomore', 'Junior', 'Senior', 'Graduate'];
 
+function isValidEmail(value: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+}
+
 export function RegisterScreen({
   department,
   email,
@@ -54,11 +58,13 @@ export function RegisterScreen({
   onTermsToggle: () => void;
   onYearChange: (value: string) => void;
 }) {
-  const emailInvalid = email.length > 0 && !email.includes('.');
+  const normalizedEmail = email.trim();
+  const emailInvalid = normalizedEmail.length > 0 && !isValidEmail(normalizedEmail);
   const canSubmit =
     !loading &&
     name.trim().length > 0 &&
     password.trim().length > 0 &&
+    normalizedEmail.length > 0 &&
     !emailInvalid &&
     termsAccepted;
 
@@ -93,7 +99,7 @@ export function RegisterScreen({
           </View>
 
           <View style={styles.fieldGroup}>
-            <Text style={styles.label}>University Email</Text>
+            <Text style={styles.label}>Email Address</Text>
             <View style={[styles.inputWrap, emailInvalid ? styles.errorInput : styles.validInput]}>
               <TextInput
                 autoCapitalize="none"
@@ -108,7 +114,9 @@ export function RegisterScreen({
                 size={20}
               />
             </View>
-            <Text style={styles.errorText}>Please enter a valid university email address.</Text>
+            {emailInvalid ? (
+              <Text style={styles.errorText}>Please enter a valid email address.</Text>
+            ) : null}
           </View>
 
           <View style={styles.fieldGroup}>
