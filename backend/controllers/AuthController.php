@@ -16,7 +16,7 @@ final class AuthController
         $bio = isset($input['bio']) ? trim((string) $input['bio']) : null;
 
         // Count attempts on entry so invalid or abusive auth requests burn the same rate-limit budget.
-        enforceRateLimit($pdo, 'auth:register', 5, 600, $email);
+        enforceRateLimit($pdo, 'auth:register', 5, 600, $email, 'identifier');
 
         if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
             jsonResponse(422, false, null, 'Invalid email');

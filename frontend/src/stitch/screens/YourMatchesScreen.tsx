@@ -1,3 +1,4 @@
+import { useMemo, useState } from 'react';
 import { ImageBackground, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { StitchNavItem } from '../components/common';
@@ -8,24 +9,48 @@ import { StitchAppRoute } from '../types';
 
 const matchCards = [
   {
+    activeWithin: 'Active 8 min ago',
+    distance: '1.2 miles away',
     location: 'San Francisco, CA',
     match: '95% Match',
     name: 'Alex Rivera, 28',
+    nearby: false,
     offering: 'UI/UX Design',
+    recentlyActive: true,
     reportedUserId: 1,
     seeking: 'Swift Dev',
     uri: stitchImages.publicProfile,
   },
   {
+    activeWithin: 'Active 2 hours ago',
+    distance: '0.8 miles away',
     location: 'Austin, TX',
     match: '88% Match',
     name: 'Sarah Chen, 31',
+    nearby: true,
     offering: 'SEO & Ads',
+    recentlyActive: false,
     reportedUserId: 2,
     seeking: 'Python Scripting',
     uri: stitchImages.exploreSarah,
   },
+  {
+    activeWithin: 'Active just now',
+    distance: '0.3 miles away',
+    location: 'San Jose, CA',
+    match: '81% Match',
+    name: 'Jordan Lee, 24',
+    nearby: true,
+    offering: 'Motion Design',
+    recentlyActive: true,
+    reportedUserId: 6,
+    seeking: 'React Native',
+    uri: stitchImages.exploreAlex,
+  },
 ];
+
+const matchTabs = ['Best Matches', 'Recently Active', 'New Near You'] as const;
+type MatchTab = (typeof matchTabs)[number];
 
 export function YourMatchesScreen({
   onNavigate,
@@ -34,6 +59,25 @@ export function YourMatchesScreen({
   onNavigate: (route: StitchAppRoute) => void;
   onOpenPublicProfile: (reportedUserId: number) => void;
 }) {
+  const [activeTab, setActiveTab] = useState<MatchTab>('Best Matches');
+
+  const visibleCards = useMemo(() => {
+    if (activeTab === 'Recently Active') {
+      return matchCards.filter(card => card.recentlyActive);
+    }
+    if (activeTab === 'New Near You') {
+      return matchCards.filter(card => card.nearby);
+    }
+    return matchCards;
+  }, [activeTab]);
+
+  const tabCaption =
+    activeTab === 'Best Matches'
+      ? 'Top compatibility picks for you'
+      : activeTab === 'Recently Active'
+        ? 'People who were online recently'
+        : 'Fresh matches closest to your area';
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -53,13 +97,27 @@ export function YourMatchesScreen({
       </View>
 
       <View style={styles.tabRow}>
-        <Text style={styles.activeTab}>Best Matches</Text>
-        <Text style={styles.inactiveTab}>Recently Active</Text>
-        <Text style={styles.inactiveTab}>New Near You</Text>
+        {matchTabs.map(tab => {
+          const isActive = tab === activeTab;
+          return (
+            <Pressable
+              key={tab}
+              onPress={() => setActiveTab(tab)}
+              style={({ pressed }) => [
+                styles.tabButton,
+                isActive ? styles.tabButtonActive : null,
+                pressed ? styles.pressed : null,
+              ]}
+            >
+              <Text style={isActive ? styles.activeTab : styles.inactiveTab}>{tab}</Text>
+            </Pressable>
+          );
+        })}
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        {matchCards.map((card, index) => (
+        <Text style={styles.tabCaption}>{tabCaption}</Text>
+        {visibleCards.map((card, index) => (
           <View key={card.name} style={[styles.card, index === 0 ? styles.cardPrimary : null]}>
             <ImageBackground imageStyle={styles.heroImageStyle} source={{ uri: card.uri }} style={styles.heroImage}>
               <View style={[styles.badge, index === 0 ? styles.badgePrimary : styles.badgeDark]}>
@@ -72,6 +130,7 @@ export function YourMatchesScreen({
                   <StitchIcon color={stitchColors.white} name="location_on" size={14} />
                   <Text style={styles.locationText}>{card.location}</Text>
                 </View>
+                <Text style={styles.metaText}>{`${card.activeWithin} • ${card.distance}`}</Text>
               </View>
             </ImageBackground>
 
@@ -111,6 +170,12 @@ export function YourMatchesScreen({
             </View>
           </View>
         ))}
+        {visibleCards.length === 0 ? (
+          <View style={styles.emptyState}>
+            <Text style={styles.emptyStateTitle}>No matches in this view yet</Text>
+            <Text style={styles.emptyStateText}>Try another tab to browse the current demo recommendations.</Text>
+          </View>
+        ) : null}
       </ScrollView>
 
       <View style={styles.bottomNav}>
@@ -160,10 +225,14 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: stitchColors.slate200,
   },
-  activeTab: {
+  tabButton: {
     paddingVertical: 16,
+  },
+  tabButtonActive: {
     borderBottomWidth: 2,
     borderBottomColor: stitchColors.primary,
+  },
+  activeTab: {
     color: stitchColors.primary,
     fontSize: 14,
     fontWeight: '700',
@@ -178,6 +247,11 @@ const styles = StyleSheet.create({
     padding: 16,
     paddingBottom: 112,
     gap: 24,
+  },
+  tabCaption: {
+    color: stitchColors.slate500,
+    fontSize: 13,
+    marginTop: -8,
   },
   card: {
     borderRadius: stitchRadius.lg,
@@ -246,6 +320,11 @@ const styles = StyleSheet.create({
   locationText: {
     color: 'rgba(255,255,255,0.88)',
     fontSize: 14,
+  },
+  metaText: {
+    marginTop: 6,
+    color: 'rgba(255,255,255,0.82)',
+    fontSize: 12,
   },
   cardBody: {
     padding: 20,
@@ -327,6 +406,25 @@ const styles = StyleSheet.create({
     color: stitchColors.white,
     fontSize: 14,
     fontWeight: '700',
+  },
+  emptyState: {
+    padding: 24,
+    borderRadius: stitchRadius.lg,
+    backgroundColor: stitchColors.white,
+    borderWidth: 1,
+    borderColor: stitchColors.slate200,
+    alignItems: 'center',
+    gap: 8,
+  },
+  emptyStateTitle: {
+    color: stitchColors.text,
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  emptyStateText: {
+    color: stitchColors.slate500,
+    fontSize: 14,
+    textAlign: 'center',
   },
   bottomNav: {
     position: 'absolute',

@@ -21,10 +21,18 @@ function clientIpAddress(): string
     return 'unknown';
 }
 
-function enforceRateLimit(PDO $pdo, string $action, int $limit, int $windowSeconds, ?string $identifier = null): void
+function enforceRateLimit(
+    PDO $pdo,
+    string $action,
+    int $limit,
+    int $windowSeconds,
+    ?string $identifier = null,
+    string $scope = 'either'
+): void
 {
     $limit = max(1, $limit);
     $windowSeconds = max(1, $windowSeconds);
+    $scope = in_array($scope, ['either', 'ip', 'identifier'], true) ? $scope : 'either';
 
     $ipAddress = clientIpAddress();
     $identifierHash = null;
@@ -41,7 +49,33 @@ function enforceRateLimit(PDO $pdo, string $action, int $limit, int $windowSecon
     $cleanupStmt = $pdo->prepare('DELETE FROM rate_limit_events WHERE created_at < :cleanup_before');
     $cleanupStmt->execute(['cleanup_before' => $cleanupBefore]);
 
-    if ($identifierHash !== null) {
+    if ($identifierHash !== null && $scope === 'identifier') {
+        $countStmt = $pdo->prepare(
+            'SELECT COUNT(*)
+             FROM rate_limit_events
+             WHERE action = :action
+               AND created_at >= :cutoff
+               AND identifier_hash = :identifier_hash'
+        );
+        $countStmt->execute([
+            'action' => $action,
+            'cutoff' => $cutoff,
+            'identifier_hash' => $identifierHash,
+        ]);
+    } elseif ($scope === 'ip' || $identifierHash === null) {
+        $countStmt = $pdo->prepare(
+            'SELECT COUNT(*)
+             FROM rate_limit_events
+             WHERE action = :action
+               AND created_at >= :cutoff
+               AND ip_address = :ip_address'
+        );
+        $countStmt->execute([
+            'action' => $action,
+            'cutoff' => $cutoff,
+            'ip_address' => $ipAddress,
+        ]);
+    } else {
         $countStmt = $pdo->prepare(
             'SELECT COUNT(*)
              FROM rate_limit_events
@@ -54,19 +88,6 @@ function enforceRateLimit(PDO $pdo, string $action, int $limit, int $windowSecon
             'cutoff' => $cutoff,
             'ip_address' => $ipAddress,
             'identifier_hash' => $identifierHash,
-        ]);
-    } else {
-        $countStmt = $pdo->prepare(
-            'SELECT COUNT(*)
-             FROM rate_limit_events
-             WHERE action = :action
-               AND created_at >= :cutoff
-               AND ip_address = :ip_address'
-        );
-        $countStmt->execute([
-            'action' => $action,
-            'cutoff' => $cutoff,
-            'ip_address' => $ipAddress,
         ]);
     }
 

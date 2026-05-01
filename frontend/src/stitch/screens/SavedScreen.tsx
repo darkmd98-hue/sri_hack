@@ -1,11 +1,10 @@
-import { useState } from 'react';
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { stitchImages } from '../data';
 import { StitchIcon } from '../icons';
 import { stitchColors, stitchRadius, stitchShadow } from '../theme';
 
-type SavedUser = {
+export type SavedUser = {
   id: string;
   image: string;
   note: string;
@@ -14,7 +13,7 @@ type SavedUser = {
   title: string;
 };
 
-const initialSavedUsers: SavedUser[] = [
+export const initialSavedUsers: SavedUser[] = [
   {
     id: 'alex-rivera',
     image: stitchImages.publicProfile,
@@ -34,18 +33,16 @@ const initialSavedUsers: SavedUser[] = [
 ];
 
 export function SavedScreen({
+  onRemoveSavedUser,
   onBack,
   onOpenPublicProfile,
+  savedUsers,
 }: {
+  onRemoveSavedUser: (userId: string) => void;
   onBack: () => void;
   onOpenPublicProfile: (reportedUserId: number) => void;
+  savedUsers: SavedUser[];
 }) {
-  const [savedUsers, setSavedUsers] = useState(initialSavedUsers);
-
-  const removeSavedUser = (userId: string): void => {
-    setSavedUsers(previous => previous.filter(user => user.id !== userId));
-  };
-
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -85,7 +82,7 @@ export function SavedScreen({
                     <Text style={styles.primaryButtonText}>Open Profile</Text>
                   </Pressable>
                   <Pressable
-                    onPress={() => removeSavedUser(user.id)}
+                    onPress={() => onRemoveSavedUser(user.id)}
                     style={({ pressed }) => [styles.secondaryButton, pressed ? styles.pressed : null]}
                   >
                     <StitchIcon color={stitchColors.slate500} name="bookmark_remove" size={18} />

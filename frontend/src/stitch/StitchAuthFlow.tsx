@@ -70,6 +70,7 @@ export function StitchAuthFlow() {
         <RegisterScreen
           department={department}
           email={registerEmail}
+          error={error}
           loading={loading}
           name={registerName}
           onBack={() => setRoute('login')}

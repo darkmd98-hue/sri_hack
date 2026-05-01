@@ -10,7 +10,7 @@ import { ChatsScreen } from './screens/ChatsScreen';
 import { MyProfileScreen } from './screens/MyProfileScreen';
 import { PublicProfileScreen } from './screens/PublicProfileScreen';
 import { ReviewsRatingsScreen } from './screens/ReviewsRatingsScreen';
-import { SavedScreen } from './screens/SavedScreen';
+import { initialSavedUsers, SavedScreen } from './screens/SavedScreen';
 import { SwapRequestsScreen } from './screens/SwapRequestsScreen';
 import { AccountVerificationScreen } from './screens/AccountVerificationScreen';
 import { StitchAppRoute } from './types';
@@ -19,6 +19,7 @@ export function StitchAppShell() {
   const [history, setHistory] = useState<StitchAppRoute[]>(['home']);
   const [selectedReportedUserId, setSelectedReportedUserId] = useState<number | null>(null);
   const [selectedSwapRequestId, setSelectedSwapRequestId] = useState<number | null>(null);
+  const [savedUsers, setSavedUsers] = useState(initialSavedUsers);
 
   const route = history[history.length - 1] ?? 'home';
 
@@ -50,6 +51,10 @@ export function StitchAppShell() {
     });
   };
 
+  const removeSavedUser = (userId: string): void => {
+    setSavedUsers(previous => previous.filter(user => user.id !== userId));
+  };
+
   switch (route) {
     case 'explore':
       return <ExploreSkillsScreen onNavigate={navigate} onOpenPublicProfile={openPublicProfile} />;
@@ -70,8 +75,10 @@ export function StitchAppShell() {
     case 'saved':
       return (
         <SavedScreen
+          onRemoveSavedUser={removeSavedUser}
           onBack={() => goBack('profile')}
           onOpenPublicProfile={openPublicProfile}
+          savedUsers={savedUsers}
         />
       );
     case 'manageSkills':

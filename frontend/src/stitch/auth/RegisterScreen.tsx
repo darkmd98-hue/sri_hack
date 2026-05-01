@@ -22,6 +22,7 @@ function isValidEmail(value: string): boolean {
 export function RegisterScreen({
   department,
   email,
+  error,
   loading,
   name,
   password,
@@ -41,6 +42,7 @@ export function RegisterScreen({
 }: {
   department: string;
   email: string;
+  error: string | null;
   loading: boolean;
   name: string;
   password: string;
@@ -191,6 +193,8 @@ export function RegisterScreen({
             </Text>
             <StitchIcon color={stitchColors.white} name="arrow_forward" size={20} />
           </Pressable>
+
+          {error ? <Text style={styles.submitErrorText}>{error}</Text> : null}
 
           <Text style={styles.footerText}>
             Already have an account?
@@ -373,6 +377,12 @@ const styles = StyleSheet.create({
     color: stitchColors.white,
     fontSize: 16,
     fontWeight: '700',
+  },
+  submitErrorText: {
+    color: stitchColors.danger,
+    fontSize: 13,
+    marginTop: 12,
+    textAlign: 'center',
   },
   footerText: {
     marginTop: 32,
